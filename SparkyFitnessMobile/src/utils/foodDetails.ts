@@ -380,11 +380,11 @@ export function selectDisplayVariant<
       )
     : undefined;
 
-  const namedVariant = isReferenceServing(
-    defaultVariant.serving_size,
-    defaultVariant.serving_unit
-  )
-    ? variants.find((variant) => !isMetricUnit(variant.serving_unit))
+  // A named serving ("2 slices", "1 bottle") wins over any gram/ml default,
+  // not only the 100 g/100 ml reference: Open Food Facts sends its declared
+  // weight (e.g. 68 g) as the default with the household serving beside it.
+  const namedVariant = isMeasureUnit(defaultVariant.serving_unit)
+    ? variants.find((variant) => !isMeasureUnit(variant.serving_unit))
     : undefined;
 
   const displayVariant = requestedVariant ?? namedVariant ?? defaultVariant;
@@ -404,6 +404,11 @@ export function selectDisplayVariant<
 export function formatServingUnit(unit: string | undefined | null): string {
   if (!unit) return '';
   return /[._]/.test(unit) ? formatServingDescription(unit) : unit;
+}
+
+/** A plain weight or volume (g, kg, ml, l) rather than a named serving. */
+function isMeasureUnit(unit: string | undefined | null): boolean {
+  return METRIC_SERVING_UNIT_PATTERN.test(unit?.trim() ?? '');
 }
 
 function isMetricUnit(unit: string | undefined | null): boolean {
@@ -907,10 +912,14 @@ export function groupEquivalentVariants<
       // becomes the lone base option and the selected non-reference variant
       // is pushed into a fallback, producing a duplicate "gram entry" in the
       // picker alongside the correct serving.
+      // A named serving ("2 slices") equal to a gram/ml base of any size
+      // (e.g. 68 g) becomes the base too, so it is what the picker selects.
       if (
         shouldPromoteMetricContext ||
         (isReferenceServing(match.base.serving_size, match.base.serving_unit) &&
-          !isReferenceServing(variant.serving_size, variant.serving_unit))
+          !isReferenceServing(variant.serving_size, variant.serving_unit)) ||
+        (isMeasureUnit(match.base.serving_unit) &&
+          !isMeasureUnit(variant.serving_unit))
       ) {
         match.equivalents.push(toEquivalentUnit(match.base));
         match.base = variant;

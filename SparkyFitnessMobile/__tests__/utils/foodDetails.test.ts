@@ -185,6 +185,22 @@ describe('selectDisplayVariant', () => {
     expect(result.orderedVariants).toEqual([dv]);
   });
 
+  it('prefers a named serving over a declared gram serving, not only 100g (#3666)', () => {
+    // Open Food Facts with auto-scale: 68 g is the default, the household
+    // serving "2 slices (68 g)" arrives beside it.
+    const dv = makeDisplayVariant(68, 'g');
+    const slices = makeDisplayVariant(2, 'slice', '2 slices (68 g)');
+    const result = selectDisplayVariant(dv, [dv, slices]);
+    expect(result.displayVariant).toBe(slices);
+    expect(result.orderedVariants).toEqual([slices, dv]);
+  });
+
+  it('keeps a gram default when the provider has no named serving', () => {
+    const dv = makeDisplayVariant(68, 'g');
+    const result = selectDisplayVariant(dv, [dv]);
+    expect(result.displayVariant).toBe(dv);
+  });
+
   it('prefers a named serving over a 100g reference serving', () => {
     const dv = makeDisplayVariant(100, 'g');
     const serving = makeDisplayVariant(1, 'Stück', '1 Stück (30 g)');
@@ -930,6 +946,30 @@ describe('groupEquivalentVariants', () => {
 
   test('returns empty array for undefined input', () => {
     expect(groupEquivalentVariants(undefined)).toEqual([]);
+  });
+
+  test('a saved food opens on its named serving rather than its gram default (#3666)', () => {
+    // Same physical serving, same nutrients: the 68 g default and "2 slice".
+    const grams = makeLocalVariant({
+      id: 'v-68g',
+      serving_size: 68,
+      serving_unit: 'g',
+      calories: 180,
+      is_default: true,
+    });
+    const slices = makeLocalVariant({
+      id: 'v-slices',
+      serving_size: 2,
+      serving_unit: 'slice',
+      calories: 180,
+    });
+    const options = buildLocalVariantOptions([grams, slices]);
+    expect(options.map((option) => option.id)).toEqual(['v-slices']);
+    expect(options[0].servingSize).toBe(2);
+    // The food's default variant id resolves to the named option.
+    expect(resolveLocalPickerVariantId([grams, slices], 'v-68g')).toBe(
+      'v-slices'
+    );
   });
 
   test('does not group named servings with different metric weights', () => {
