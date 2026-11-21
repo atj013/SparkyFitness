@@ -6,6 +6,7 @@ import {
   pressAction,
   pressActionByAccessibilityLabel,
 } from './helpers/nativeHeaderTestUtils';
+import { useFoodServingMemoryStore } from '../../src/stores/foodServingMemoryStore';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import FoodEntryAddScreen from '../../src/screens/FoodEntryAddScreen';
@@ -461,6 +462,7 @@ describe('FoodEntryAddScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockStackRoutes = [];
+    useFoodServingMemoryStore.getState().clear();
     mockRecipeScope = 'owner-server';
     mockUseRealStepperInput = false;
     mockNavigation.isFocused.mockReturnValue(true);
@@ -2705,6 +2707,89 @@ describe('FoodEntryAddScreen', () => {
     expect(mockPopToTop).toHaveBeenCalledTimes(1);
     expect(mockPop).not.toHaveBeenCalled();
     expect(navigation.dispatch).toHaveBeenCalledWith({ type: 'POP_TO_TOP' });
+  });
+
+  describe('serving memory (device-local)', () => {
+    const twoServings = [
+      {
+        id: 'variant-1',
+        food_id: 'food-1',
+        serving_size: 1,
+        serving_unit: 'cup',
+        calories: 100,
+        protein: 15,
+        carbs: 6,
+        fat: 0,
+      },
+      {
+        id: 'variant-grams',
+        food_id: 'food-1',
+        serving_size: 100,
+        serving_unit: 'g',
+        calories: 59,
+        protein: 10,
+        carbs: 3.6,
+        fat: 0.4,
+      },
+    ];
+
+    it('remembers the serving and amount after a food is logged', () => {
+      const screen = renderScreen({ item: baseLocalItem, date: '2026-04-23' });
+
+      fireEvent.changeText(screen.getByDisplayValue('1'), '2');
+      pressAction(screen, navigation, 'Save');
+
+      expect(
+        useFoodServingMemoryStore.getState().servings['food:food-1']
+      ).toMatchObject({ servingSize: 1, servingUnit: 'cup', quantity: 2 });
+    });
+
+    it('opens on the remembered serving and amount', () => {
+      mockUseFoodVariants.mockReturnValue({
+        variants: twoServings,
+        isLoading: false,
+        isError: false,
+      });
+      useFoodServingMemoryStore.getState().remember(['food:food-1'], {
+        servingSize: 100,
+        servingUnit: 'g',
+        quantity: 150,
+      });
+
+      const screen = renderScreen({ item: baseLocalItem, date: '2026-04-23' });
+
+      expect(screen.getByDisplayValue('150')).toBeTruthy();
+      expect(
+        screen.getByTestId('nutrition-facts-amount').props.children
+      ).toMatch(/^150 g/);
+    });
+
+    it('keeps the default serving when the remembered one no longer exists', () => {
+      useFoodServingMemoryStore.getState().remember(['food:food-1'], {
+        servingSize: 1,
+        servingUnit: 'bowl',
+        quantity: 3,
+      });
+
+      const screen = renderScreen({ item: baseLocalItem, date: '2026-04-23' });
+
+      expect(screen.getByDisplayValue('1')).toBeTruthy();
+    });
+
+    it('neither applies nor records memory when picking for a meal', () => {
+      useFoodServingMemoryStore.getState().remember(['food:food-1'], {
+        servingSize: 1,
+        servingUnit: 'cup',
+        quantity: 4,
+      });
+
+      const screen = renderScreen({
+        item: baseLocalItem,
+        pickerMode: 'meal-builder',
+      });
+
+      expect(screen.queryByDisplayValue('4')).toBeNull();
+    });
   });
 
   describe('keep adding: returning to an open diary food search', () => {

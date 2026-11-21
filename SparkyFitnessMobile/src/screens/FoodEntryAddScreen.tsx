@@ -47,6 +47,11 @@ import {
   isDiaryFoodSearch,
   isFoodSelectionMode,
 } from '../utils/foodPickerMode';
+import {
+  findRememberedOption,
+  servingMemoryKeyFor,
+  useFoodServingMemoryStore,
+} from '../stores/foodServingMemoryStore';
 import { CreateFoodEntryPayload } from '../services/api/foodEntriesApi';
 import { addDays, getTodayDate, getDeviceTimezone } from '../utils/dateUtils';
 import { useDiaryDateStore } from '../stores/diaryDateStore';
@@ -1075,6 +1080,44 @@ const FoodEntryAddScreen: React.FC<FoodEntryAddScreenProps> = ({
       quantityText,
     ]
   );
+  // Serving memory (device-local): open on the serving and amount last logged
+  // for this food. Applied once, after the serving options have loaded, and
+  // never in picker/recipe flows or when the screen arrives with an edited
+  // serving.
+  const servingMemoryKey = servingMemoryKeyFor(activeItem);
+  const rememberedServing = useFoodServingMemoryStore((state) =>
+    servingMemoryKey ? state.servings[servingMemoryKey] : undefined
+  );
+  const rememberServing = useFoodServingMemoryStore((state) => state.remember);
+  const servingMemoryAppliedRef = useRef(false);
+  const servingMemoryAllowed =
+    !isSelectionMode &&
+    !recipeImportTarget &&
+    !route.params.adjustedValues &&
+    !route.params.adjustedUnitSelection;
+  useEffect(() => {
+    if (servingMemoryAppliedRef.current) return;
+    if (!servingMemoryAllowed || !rememberedServing) {
+      servingMemoryAppliedRef.current = true;
+      return;
+    }
+    const options = isLocalFood ? localVariantOptions : externalVariantOptions;
+    // Wait until the options exist and the default selection has been made.
+    if (options.length === 0 || !selectedVariantId) return;
+    servingMemoryAppliedRef.current = true;
+    const match = findRememberedOption(options, rememberedServing);
+    if (!match) return;
+    if (match.id !== selectedVariantId) handleVariantChange(match.id);
+    setQuantityText(formatServingSizeDisplay(rememberedServing.quantity));
+  }, [
+    externalVariantOptions,
+    handleVariantChange,
+    isLocalFood,
+    localVariantOptions,
+    rememberedServing,
+    selectedVariantId,
+    servingMemoryAllowed,
+  ]);
 
   const updateQuantityText = (text: string) => {
     // While "Weighed it cooked" is on, the raw quantity is calculated.
@@ -1255,6 +1298,30 @@ const FoodEntryAddScreen: React.FC<FoodEntryAddScreenProps> = ({
     };
   };
 
+  // Remember the serving just logged (a plain option of this food, not a
+  // one-off unit or edited nutrition), under the food's key and, for a
+  // provider result saved by this log, under its new saved food id too.
+  const rememberLoggedServing = (savedFoodId?: string | null) => {
+    if (!servingMemoryAllowed || selectedVariantOverride || adjustedValues)
+      return;
+    const options = isLocalFood ? localVariantOptions : externalVariantOptions;
+    const effectiveId =
+      (isLocalFood ? resolvedLocalPickerVariantId : undefined) ??
+      selectedVariantId;
+    const option = options.find((candidate) => candidate.id === effectiveId);
+    if (!option || !(quantity > 0)) return;
+    const keys = [
+      servingMemoryKey,
+      savedFoodId ? `food:${savedFoodId}` : null,
+    ].filter((key): key is string => !!key);
+    if (keys.length === 0) return;
+    rememberServing([...new Set(keys)], {
+      servingSize: option.servingSize,
+      servingUnit: option.servingUnit,
+      quantity,
+    });
+  };
+
   // After logging to the diary: a basket flow pops back `returnDepth` screens;
   // otherwise, when a diary food search is open underneath, return to it so
   // more foods can be added (it shows a Done button), else go to the diary.
@@ -1340,6 +1407,7 @@ const FoodEntryAddScreen: React.FC<FoodEntryAddScreenProps> = ({
         }
       }
       invalidateCache(selectedDate);
+      rememberLoggedServing(entry.food_id);
       // Reads route.params.returnDepth directly, not the `returnDepth` local
       // above, which defaults to 1 for the picker-mode flows.
       leaveAfterLogging();
