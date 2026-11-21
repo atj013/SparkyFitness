@@ -23,6 +23,8 @@ interface CheckInPhotosSummaryProps {
    * decide whether the day is empty.
    */
   photos: CheckInPhoto[];
+  /** With no photos: false shows nothing instead of "Tap to add photos". */
+  showEmptyPrompt?: boolean;
   /** Opens the full progress photo screen on this day. */
   onPress: () => void;
 }
@@ -43,6 +45,7 @@ const CheckInPhotosSummary: React.FC<CheckInPhotosSummaryProps> = ({
   date,
   photos,
   onPress,
+  showEmptyPrompt = true,
 }) => {
   const { t } = useTranslation();
   const dateLocale = i18n.language;
@@ -58,6 +61,7 @@ const CheckInPhotosSummary: React.FC<CheckInPhotosSummaryProps> = ({
   for (const photo of photos) byType.set(photo.photo_type, photo);
 
   if (byType.size === 0) {
+    if (!showEmptyPrompt) return null;
     return (
       <Pressable
         onPress={onPress}

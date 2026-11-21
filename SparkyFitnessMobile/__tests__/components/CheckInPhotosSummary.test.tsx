@@ -51,6 +51,22 @@ describe('CheckInPhotosSummary', () => {
     } as unknown as ReturnType<typeof useCheckInPhotoSource>);
   });
 
+  it('renders nothing on a day with no photos when the prompt is off', () => {
+    setPhotos([]);
+
+    const { queryByText, toJSON } = render(
+      <CheckInPhotosSummary
+        date={DATE}
+        photos={photos}
+        onPress={onPress}
+        showEmptyPrompt={false}
+      />
+    );
+
+    expect(queryByText('Tap to add photos')).toBeNull();
+    expect(toJSON()).toBeNull();
+  });
+
   it('prompts on a day with no photos rather than rendering nothing', () => {
     // Same affordance food and exercise get: a blank space gives no way in.
     setPhotos([]);

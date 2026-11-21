@@ -36,6 +36,10 @@ import DateNavigator from '../components/DateNavigator';
 import DiaryCalorieMacroSummary from '../components/DiaryCalorieMacroSummary';
 import EmptyDayIllustration from '../components/EmptyDayIllustration';
 import ExerciseSummary from '../components/ExerciseSummary';
+import HydrationGauge from '../components/HydrationGauge';
+import DiaryWeightCard from '../components/DiaryWeightCard';
+import { useWaterGaugeLabels } from '../hooks/useWaterGaugeLabels';
+import { useWaterIntakeMutation } from '../hooks/useWaterIntakeMutation';
 import FoodSummary from '../components/FoodSummary';
 import MeasurementsSummary from '../components/MeasurementsSummary';
 import ServingAdjustSheet, {
@@ -327,6 +331,23 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ navigation }) => {
   );
 
   const { preferences } = usePreferences();
+  const {
+    increment: incrementWater,
+    decrement: decrementWater,
+    unit: waterUnit,
+    servingVolume,
+    isContainersLoaded,
+    containers: waterContainers,
+    quickAddPresets: waterQuickAddPresets,
+    logPreset: logWaterPreset,
+    activeContainer: activeWaterContainer,
+    selectContainer: selectWaterContainer,
+  } = useWaterIntakeMutation({ date: selectedDate, enabled: isConnected });
+  const { linkedPressLabel, quickAddOptions } = useWaterGaugeLabels(
+    activeWaterContainer,
+    waterQuickAddPresets
+  );
+  const waterDisplayUnit = waterUnit || preferences?.water_display_unit || 'ml';
   const weightUnit = (preferences?.default_weight_unit as 'kg' | 'lbs') ?? 'kg';
   const distanceUnit =
     (preferences?.default_distance_unit as 'km' | 'miles') ?? 'km';
@@ -799,11 +820,6 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ navigation }) => {
           </>
         ) : (
           <>
-            <WakeUpCard
-              entry={wakeUp}
-              day={selectedDate}
-              navigation={navigation}
-            />
             <FoodSummary
               foodEntries={summary.foodEntries}
               mealTypes={mealTypes}
@@ -861,12 +877,56 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ navigation }) => {
               }
               onPressPlanAssignment={handleStartPlanAssignment}
               onPressWorkout={openWorkout}
+              showEmptyPrompt={false}
+            />
+            {/* Hydration, sleep and weight, so the day reads in one place
+                instead of switching to the Dashboard. */}
+            <HydrationGauge
+              consumed={summary.waterConsumed}
+              goal={summary.waterGoal}
+              fromFoodMl={summary.waterFromFood}
+              unit={waterDisplayUnit}
+              containerVolume={servingVolume}
+              linkedPressLabel={linkedPressLabel}
+              onConfigure={
+                isContainersLoaded && !activeWaterContainer
+                  ? () => navigation.navigate('WaterContainers')
+                  : undefined
+              }
+              onPressHistory={() =>
+                navigation.navigate('WaterLog', { date: selectedDate })
+              }
+              onIncrement={isContainersLoaded ? incrementWater : undefined}
+              onDecrement={isContainersLoaded ? decrementWater : undefined}
+              disableDecrement={summary.waterConsumed <= 0}
+              containers={waterContainers}
+              activeContainerId={activeWaterContainer?.id}
+              onSelectContainer={selectWaterContainer}
+              quickAddPresets={quickAddOptions}
+              onQuickAdd={
+                isContainersLoaded
+                  ? (id: number) => logWaterPreset(id)
+                  : undefined
+              }
+            />
+            <WakeUpCard
+              entry={wakeUp}
+              day={selectedDate}
+              navigation={navigation}
             />
             <NapsCard naps={naps} day={selectedDate} navigation={navigation} />
             <BedTimeCard
               entry={bedTime}
               day={selectedDate}
               navigation={navigation}
+            />
+            <DiaryWeightCard
+              date={selectedDate}
+              weightMode={weightMode}
+              enabled={isConnected}
+              onPress={() =>
+                navigation.navigate('MeasurementsAdd', { date: selectedDate })
+              }
             />
             <MeasurementsSummary
               measurements={measurements}
@@ -884,6 +944,7 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ navigation }) => {
             <CheckInPhotosSummary
               date={selectedDate}
               photos={dayPhotos}
+              showEmptyPrompt={false}
               onPress={() =>
                 navigation.navigate('ProgressPhotos', { date: selectedDate })
               }

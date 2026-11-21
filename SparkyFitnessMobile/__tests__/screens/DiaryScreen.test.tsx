@@ -254,6 +254,34 @@ jest.mock('../../src/components/DiaryCalorieMacroSummary', () => {
   return { __esModule: true, default: () => <View testID="macro-summary" /> };
 });
 
+jest.mock('../../src/hooks/useWaterIntakeMutation', () => ({
+  useWaterIntakeMutation: () => ({
+    increment: jest.fn(),
+    decrement: jest.fn(),
+    unit: 'ml',
+    servingVolume: 250,
+    isContainersLoaded: true,
+    containers: [],
+    quickAddPresets: [],
+    logPreset: jest.fn(),
+    activeContainer: null,
+    selectContainer: jest.fn(),
+  }),
+}));
+
+jest.mock('../../src/components/HydrationGauge', () => {
+  const { View } = require('react-native');
+  return { __esModule: true, default: () => <View testID="hydration-gauge" /> };
+});
+
+jest.mock('../../src/components/DiaryWeightCard', () => {
+  const { View } = require('react-native');
+  return {
+    __esModule: true,
+    default: () => <View testID="diary-weight-card" />,
+  };
+});
+
 jest.mock('../../src/components/EmptyDayIllustration', () => {
   const { View } = require('react-native');
   return { __esModule: true, default: () => <View testID="empty-day" /> };
@@ -813,7 +841,7 @@ describe('DiaryScreen sleep cards', () => {
     expect(getByTestId('bed-time-card')).toBeTruthy();
   });
 
-  test('orders the day chronologically, with Bed Time last before the measurements', () => {
+  test('orders the day: food, exercise, water, sleep, weight, then measurements', () => {
     // A populated day so the food/exercise/measurements branch renders.
     mockUseDailySummary.mockReturnValue({
       summary: { ...baseSummary, foodEntries: [buildFoodEntry('f1')] },
@@ -825,11 +853,13 @@ describe('DiaryScreen sleep cards', () => {
     const { getByTestId, UNSAFE_root } = renderScreen();
 
     const order = [
-      'wake-up-card',
       'food-summary',
       'exercise-summary',
+      'hydration-gauge',
+      'wake-up-card',
       'naps-card',
       'bed-time-card',
+      'diary-weight-card',
       'measurements-summary',
     ];
     const positions = order.map((testID) => {

@@ -1538,6 +1538,11 @@
     "buttonHint": "Opens rest period selection"
   },
   "diary": {
+    "weightCard": {
+      "title": "Current weight",
+      "none": "No weight logged yet",
+      "a11y": "Log weight for this day"
+    },
     "chooseDate": "Choose diary date",
     "loading": "Loading diary...",
     "loadFailed": "Failed to load diary",

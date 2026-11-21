@@ -8,6 +8,31 @@ import {
   createQueryWrapper,
 } from '../hooks/queryTestUtils';
 
+jest.mock('../../src/hooks/useWaterIntakeMutation', () => ({
+  useWaterIntakeMutation: () => ({
+    increment: jest.fn(),
+    decrement: jest.fn(),
+    unit: 'ml',
+    servingVolume: 250,
+    isContainersLoaded: true,
+    containers: [],
+    quickAddPresets: [],
+    logPreset: jest.fn(),
+    activeContainer: null,
+    selectContainer: jest.fn(),
+  }),
+}));
+jest.mock('../../src/components/HydrationGauge', () => {
+  const { View } = require('react-native');
+  return { __esModule: true, default: () => <View testID="hydration-gauge" /> };
+});
+jest.mock('../../src/components/DiaryWeightCard', () => {
+  const { View } = require('react-native');
+  return {
+    __esModule: true,
+    default: () => <View testID="diary-weight-card" />,
+  };
+});
 jest.mock('../../src/hooks/useOfflineDiaryDay', () => ({
   useOfflineDiaryDay: jest.fn(() => ({ saved: null, waiting: [] })),
 }));

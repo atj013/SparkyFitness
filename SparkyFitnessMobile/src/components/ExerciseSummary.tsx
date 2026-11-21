@@ -33,6 +33,8 @@ interface ExerciseSummaryProps {
   distanceUnit?: 'km' | 'miles';
   /** Workouts logged on this phone and not on the server yet (#1983). */
   waitingSessionIds?: ReadonlySet<string>;
+  /** With no workouts: false shows nothing instead of "Tap to add exercise". */
+  showEmptyPrompt?: boolean;
 }
 
 const ExerciseSummary: React.FC<ExerciseSummaryProps> = ({
@@ -46,6 +48,7 @@ const ExerciseSummary: React.FC<ExerciseSummaryProps> = ({
   weightUnit = 'kg',
   distanceUnit = 'km',
   waitingSessionIds,
+  showEmptyPrompt = true,
 }) => {
   const { t } = useTranslation();
   const [accentPrimary, textMuted] = useCSSVariable([
@@ -262,6 +265,10 @@ const ExerciseSummary: React.FC<ExerciseSummaryProps> = ({
       {planBannersOnly}
     </>
   );
+
+  if (exerciseEntries.length === 0 && !showEmptyPrompt) {
+    return planBannersOnly || programBanner ? <View>{planBanners}</View> : null;
+  }
 
   if (exerciseEntries.length === 0) {
     const emptyContent = (
