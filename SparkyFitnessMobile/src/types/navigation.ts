@@ -226,6 +226,11 @@ export type RootStackParamList = {
         /** Optional canonical meal type id to pre-select when logging. */
         mealTypeId?: string;
         mealPlanTarget?: MealPlanPickerTarget;
+        /**
+         * How many items were logged to the diary from this search so far.
+         * Set by FoodEntryAdd when it returns here after an add.
+         */
+        loggedCount?: number;
       }
     | undefined;
   FoodEntryAdd: {

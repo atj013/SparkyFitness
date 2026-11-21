@@ -1,13 +1,14 @@
 import React, { type ComponentProps } from 'react';
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 import {
+  findHeaderItem,
   findHeaderItemByAccessibilityLabel,
+  pressAction,
   pressActionByAccessibilityLabel,
 } from './helpers/nativeHeaderTestUtils';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import FoodEntryAddScreen from '../../src/screens/FoodEntryAddScreen';
-import { FooterSaveBar } from '../../src/components/FormScreenChrome';
 import { useMealTypes, useToggleFavorite } from '../../src/hooks';
 import {
   useCreateFoodVariant,
@@ -60,6 +61,14 @@ const mockPop = jest.fn((count: number) => ({
   payload: { count },
 }));
 const mockPopToTop = jest.fn(() => ({ type: 'POP_TO_TOP' }));
+const mockPopTo = jest.fn(
+  (name: string, params?: object, options?: { merge?: boolean }) => ({
+    type: 'POP_TO',
+    payload: { name, params, merge: options?.merge },
+  })
+);
+type MockRoute = { key: string; name: string; params?: object };
+let mockStackRoutes: MockRoute[] = [];
 
 type FoodEntryNavigation = RootStackScreenProps<'FoodEntryAdd'>['navigation'];
 const mockNavigation = {
@@ -68,6 +77,7 @@ const mockNavigation = {
   replace: jest.fn(),
   setParams: jest.fn(),
   dispatch: jest.fn(),
+  getState: jest.fn(() => ({ routes: mockStackRoutes })),
   setOptions: jest.fn(),
   isFocused: jest.fn(() => true),
   addListener: jest.fn<
@@ -87,6 +97,8 @@ jest.mock('@react-navigation/native', () => {
     StackActions: {
       pop: (count: number) => mockPop(count),
       popToTop: () => mockPopToTop(),
+      popTo: (name: string, params?: object, options?: { merge?: boolean }) =>
+        mockPopTo(name, params, options),
     },
   };
 });
@@ -448,6 +460,7 @@ describe('FoodEntryAddScreen', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockStackRoutes = [];
     mockRecipeScope = 'owner-server';
     mockUseRealStepperInput = false;
     mockNavigation.isFocused.mockReturnValue(true);
@@ -584,7 +597,7 @@ describe('FoodEntryAddScreen', () => {
     expect(item.servingSize).toBe(450);
     expect(item.calories).toBe(600);
     const screen = renderScreen({ item });
-    fireEvent.press(screen.getByText('Add Meal'));
+    pressAction(screen, navigation, 'Save');
     expect(mockAddMeal).toHaveBeenCalledWith(
       expect.objectContaining({
         meal_template_id: 'cooked-meal',
@@ -661,7 +674,7 @@ describe('FoodEntryAddScreen', () => {
       </SafeAreaProvider>
     );
     expect(screen.getByDisplayValue('800')).toBeTruthy();
-    fireEvent.press(screen.getByText('Add Food'));
+    pressAction(screen, navigation, 'Save');
     expect(consumePendingRecipeImportSelection()).toMatchObject({
       ingredient: { quantity: 800, unit: 'g', variant_id: 'grams' },
     });
@@ -738,7 +751,7 @@ describe('FoodEntryAddScreen', () => {
       );
       expect(screen.getByTestId('quantity-input').props.value).toBe(expected);
       if (expected === '' || expected === '.') {
-        fireEvent.press(screen.getByText('Add Food'));
+        pressAction(screen, navigation, 'Save');
         expect(mockBuildMealIngredientDraft).not.toHaveBeenCalled();
       }
     }
@@ -841,7 +854,7 @@ describe('FoodEntryAddScreen', () => {
           />
         </SafeAreaProvider>
       );
-      fireEvent.press(screen.getByText('Add Food'));
+      pressAction(screen, navigation, 'Save');
       if (change === 'same-owner' || change === 'ordinary') {
         await waitFor(() => expect(mockSaveFoodAsync).toHaveBeenCalledTimes(1));
         await waitFor(() =>
@@ -876,8 +889,8 @@ describe('FoodEntryAddScreen', () => {
       const recovery =
         'Reopen the recipe import review and choose this ingredient again.';
       expect(screen.getByText(recovery)).toBeTruthy();
-      expect(screen.UNSAFE_getByType(FooterSaveBar).props.disabled).toBe(true);
-      fireEvent.press(screen.getByText('Add Food'));
+      expect(findHeaderItem(navigation, 'Save')?.disabled).toBe(true);
+      pressAction(screen, navigation, 'Save');
       expect(mockSaveFoodAsync).not.toHaveBeenCalled();
       act(() => {
         mockRecipeClient.setQueryData(['userProfile'], {
@@ -897,8 +910,8 @@ describe('FoodEntryAddScreen', () => {
         </SafeAreaProvider>
       );
       expect(screen.getByText(recovery)).toBeTruthy();
-      expect(screen.UNSAFE_getByType(FooterSaveBar).props.disabled).toBe(true);
-      fireEvent.press(screen.getByText('Add Food'));
+      expect(findHeaderItem(navigation, 'Save')?.disabled).toBe(true);
+      pressAction(screen, navigation, 'Save');
       expect(mockSaveFoodAsync).not.toHaveBeenCalled();
       expect(navigation.dispatch).not.toHaveBeenCalled();
       expect(consumePendingRecipeImportSelection()).toBeNull();
@@ -919,9 +932,9 @@ describe('FoodEntryAddScreen', () => {
           unit: 'bar',
         },
       });
-      expect(screen.UNSAFE_getByType(FooterSaveBar).props.disabled).toBe(false);
-      const addBeforeIdentityChange = screen.UNSAFE_getByType(FooterSaveBar)
-        .props.onPress as () => void;
+      expect(findHeaderItem(navigation, 'Save')?.disabled).toBe(false);
+      const addBeforeIdentityChange = findHeaderItem(navigation, 'Save')
+        ?.onPress as () => void;
       act(() => {
         if (change === 'same-owner-reauthentication') mockRecipeClient.clear();
         mockRecipeClient.setQueryData(['userProfile'], {
@@ -931,7 +944,7 @@ describe('FoodEntryAddScreen', () => {
         addBeforeIdentityChange();
       });
       expect(mockSaveFoodAsync).not.toHaveBeenCalled();
-      expect(screen.UNSAFE_getByType(FooterSaveBar).props.disabled).toBe(true);
+      expect(findHeaderItem(navigation, 'Save')?.disabled).toBe(true);
       expect(
         screen.getByText(
           'Reopen the recipe import review and choose this ingredient again.'
@@ -952,13 +965,13 @@ describe('FoodEntryAddScreen', () => {
       item: baseExternalItem,
       pickerMode: 'meal-builder',
     });
-    expect(screen.UNSAFE_getByType(FooterSaveBar).props.disabled).toBe(false);
+    expect(findHeaderItem(navigation, 'Save')?.disabled).toBe(false);
     expect(
       screen.queryByText(
         'Reopen the recipe import review and choose this ingredient again.'
       )
     ).toBeNull();
-    fireEvent.press(screen.getByText('Add Food'));
+    pressAction(screen, navigation, 'Save');
     await waitFor(() =>
       expect(mockSetPendingMealIngredientSelection).toHaveBeenCalledTimes(1)
     );
@@ -1093,7 +1106,7 @@ describe('FoodEntryAddScreen', () => {
     expect(screen.getByTestId('quantity-input').props.value).toBe('1.5');
     fireEvent.press(screen.getByTestId('icon-remove'));
     expect(screen.getByTestId('quantity-input').props.value).toBe('1');
-    fireEvent.press(screen.getByText('Add Food'));
+    pressAction(screen, navigation, 'Save');
     expect(mockSetPendingMealIngredientSelection).toHaveBeenCalledWith(
       expect.objectContaining({
         ingredient: expect.objectContaining({ quantity: 1, unit: 'cup' }),
@@ -1119,7 +1132,7 @@ describe('FoodEntryAddScreen', () => {
         returnDepth: 3,
       });
 
-      fireEvent.press(screen.getByText('Add Food'));
+      pressAction(screen, navigation, 'Save');
 
       await waitFor(() =>
         expect(consumePendingRecipeImportSelection()).toEqual({
@@ -1266,7 +1279,7 @@ describe('FoodEntryAddScreen', () => {
           </SafeAreaProvider>
         </QueryClientProvider>
       );
-      fireEvent.press(view.getByText('Add Food'));
+      pressAction(view, navigation, 'Save');
       await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
       act(() => {
         if (departure === 'blur') {
@@ -1319,7 +1332,7 @@ describe('FoodEntryAddScreen', () => {
           unit: 'bar',
         },
       });
-      fireEvent.press(screen.getByText('Add Food'));
+      pressAction(screen, navigation, 'Save');
       expect(mockSaveFoodAsync).toHaveBeenCalledTimes(1);
       act(() => {
         if (departure === 'blur' || departure === 'refocus')
@@ -1409,7 +1422,7 @@ describe('FoodEntryAddScreen', () => {
         </SafeAreaProvider>
       );
       const screen = render(view(target));
-      fireEvent.press(screen.getByText('Add Food'));
+      pressAction(screen, navigation, 'Save');
       expect(mockSaveFoodAsync).toHaveBeenCalledTimes(1);
       if (replace) screen.rerender(view({ ...target, draftKey: 'draft-b' }));
       screen.rerender(view({ ...target }));
@@ -1464,7 +1477,7 @@ describe('FoodEntryAddScreen', () => {
       recipeImportTarget: target,
       selectedVariantOverride: variant,
     });
-    fireEvent.press(screen.getByText('Add Food'));
+    pressAction(screen, navigation, 'Save');
     expect(mockCreateVariant).not.toHaveBeenCalled();
     expect(consumePendingRecipeImportSelection()).toMatchObject({
       target,
@@ -1530,7 +1543,7 @@ describe('FoodEntryAddScreen', () => {
     fireEvent.changeText(screen.getByTestId('quantity-input'), '800');
     fireEvent.press(screen.getAllByText('100 ml (120 cal)')[0]);
     expect(screen.getByTestId('quantity-input').props.value).toBe('');
-    fireEvent.press(screen.getByText('Add Food'));
+    pressAction(screen, navigation, 'Save');
     expect(mockBuildMealIngredientDraft).not.toHaveBeenCalled();
   });
   it('requires an explicit amount when source volume cannot become the selected mass', () => {
@@ -1551,7 +1564,7 @@ describe('FoodEntryAddScreen', () => {
     });
     expect(screen.queryByDisplayValue('250')).toBeNull();
     expect(screen.queryByDisplayValue('100')).toBeNull();
-    fireEvent.press(screen.getByText('Add Food'));
+    pressAction(screen, navigation, 'Save');
     expect(mockBuildMealIngredientDraft).not.toHaveBeenCalled();
   });
 
@@ -1682,7 +1695,7 @@ describe('FoodEntryAddScreen', () => {
     it('recalculates an untouched automatic time when the meal changes after a source switch', () => {
       const screen = switchToLocalSource(renderBarcodeEntry());
       fireEvent.press(screen.getByText('Lunch target'));
-      fireEvent.press(screen.getByText('Add Food'));
+      pressAction(screen, navigation, 'Save');
       expect(mockAddEntry).toHaveBeenCalledWith(
         expect.objectContaining({
           createEntryPayload: expect.objectContaining({ entry_time: '12:30' }),
@@ -1700,7 +1713,7 @@ describe('FoodEntryAddScreen', () => {
       });
       const screen = switchToLocalSource(renderBarcodeEntry());
       fireEvent.press(screen.getByText('Use Today'));
-      fireEvent.press(screen.getByText('Add Food'));
+      pressAction(screen, navigation, 'Save');
       expect(mockAddEntry).toHaveBeenCalledWith(
         expect.objectContaining({
           createEntryPayload: expect.objectContaining({
@@ -1714,7 +1727,7 @@ describe('FoodEntryAddScreen', () => {
       const screen = switchToLocalSource(renderBarcodeEntry('09:45'));
       fireEvent.press(screen.getByText('Lunch target'));
       fireEvent.press(screen.getByText('Use Today'));
-      fireEvent.press(screen.getByText('Add Food'));
+      pressAction(screen, navigation, 'Save');
       expect(mockAddEntry).toHaveBeenCalledWith(
         expect.objectContaining({
           createEntryPayload: expect.objectContaining({ entry_time: '09:45' }),
@@ -1728,7 +1741,7 @@ describe('FoodEntryAddScreen', () => {
       const screen = switchToLocalSource(initialScreen);
       fireEvent.press(screen.getByText('Lunch target'));
       fireEvent.press(screen.getByText('Use Today'));
-      fireEvent.press(screen.getByText('Add Food'));
+      pressAction(screen, navigation, 'Save');
       expect(mockAddEntry).toHaveBeenCalledWith(
         expect.objectContaining({
           createEntryPayload: expect.objectContaining({ entry_time: null }),
@@ -1744,7 +1757,7 @@ describe('FoodEntryAddScreen', () => {
       returnDepth: 2,
     });
 
-    fireEvent.press(screen.getByText('Add Food'));
+    pressAction(screen, navigation, 'Save');
 
     await waitFor(() => {
       expect(mockSetPendingMealIngredientSelection).toHaveBeenCalledWith({
@@ -1787,7 +1800,7 @@ describe('FoodEntryAddScreen', () => {
       returnDepth: 3,
     });
 
-    fireEvent.press(screen.getByText('Add Food'));
+    pressAction(screen, navigation, 'Save');
 
     await waitFor(() => {
       expect(mockSaveFoodAsync).toHaveBeenCalledTimes(1);
@@ -1878,7 +1891,7 @@ describe('FoodEntryAddScreen', () => {
       });
     });
 
-    fireEvent.press(screen.getByText('Add Food'));
+    pressAction(screen, navigation, 'Save');
 
     await waitFor(() => {
       expect(mockCreateVariant).toHaveBeenCalledTimes(1);
@@ -1917,7 +1930,7 @@ describe('FoodEntryAddScreen', () => {
       returnDepth: 1,
     });
 
-    fireEvent.press(screen.getByText('Add Food'));
+    pressAction(screen, navigation, 'Save');
 
     await waitFor(() => {
       expect(mockSaveFoodAsync).toHaveBeenCalledTimes(1);
@@ -1961,7 +1974,7 @@ describe('FoodEntryAddScreen', () => {
       pickerMode: 'meal-builder',
     });
 
-    fireEvent.press(screen.getByText('Add Food'));
+    pressAction(screen, navigation, 'Save');
 
     await waitFor(() => {
       expect(mockSaveFoodAsync).toHaveBeenCalledTimes(1);
@@ -1981,7 +1994,7 @@ describe('FoodEntryAddScreen', () => {
       pickerMode: 'meal-builder',
     });
 
-    fireEvent.press(screen.getByText('Add Meal'));
+    pressAction(screen, navigation, 'Save');
 
     expect(mockToast.show).toHaveBeenCalledWith({
       type: 'error',
@@ -2003,7 +2016,7 @@ describe('FoodEntryAddScreen', () => {
       },
     });
 
-    fireEvent.press(screen.getByText('Add Food'));
+    pressAction(screen, navigation, 'Save');
 
     await waitFor(() => {
       expect(mockSetPendingMealPlanSelection).toHaveBeenCalledWith({
@@ -2047,7 +2060,7 @@ describe('FoodEntryAddScreen', () => {
       },
     });
 
-    fireEvent.press(screen.getByText('Add Meal'));
+    pressAction(screen, navigation, 'Save');
 
     expect(mockSetPendingMealPlanSelection).toHaveBeenCalledWith({
       assignmentIndex: 1,
@@ -2082,7 +2095,7 @@ describe('FoodEntryAddScreen', () => {
       returnDepth: 2,
     });
 
-    fireEvent.press(screen.getByText('Add Food'));
+    pressAction(screen, navigation, 'Save');
 
     await waitFor(() =>
       expect(navigation.dispatch).toHaveBeenCalledWith({
@@ -2109,7 +2122,7 @@ describe('FoodEntryAddScreen', () => {
       returnDepth: 2,
     });
 
-    fireEvent.press(screen.getByText('Add Meal'));
+    pressAction(screen, navigation, 'Save');
 
     expect(consumePendingActionTagSelection()).toEqual(
       expect.objectContaining({
@@ -2189,7 +2202,7 @@ describe('FoodEntryAddScreen', () => {
       mealTypeId: 'custom-pw',
     });
 
-    fireEvent.press(screen.getByText('Add Meal'));
+    pressAction(screen, navigation, 'Save');
 
     expect(mockAddMeal).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -2231,7 +2244,7 @@ describe('FoodEntryAddScreen', () => {
       mealTypeId: 'custom-l',
     });
 
-    fireEvent.press(screen.getByText('Add Meal'));
+    pressAction(screen, navigation, 'Save');
 
     expect(mockAddMeal).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -2253,7 +2266,7 @@ describe('FoodEntryAddScreen', () => {
       date: '2026-05-15',
     });
 
-    fireEvent.press(screen.getByText('Add Meal'));
+    pressAction(screen, navigation, 'Save');
 
     expect(mockAddMeal).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -2309,7 +2322,7 @@ describe('FoodEntryAddScreen', () => {
       date: '2026-05-15',
     });
 
-    fireEvent.press(screen.getByText('Add Meal'));
+    pressAction(screen, navigation, 'Save');
 
     expect(mockAddMeal).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -2363,7 +2376,7 @@ describe('FoodEntryAddScreen', () => {
     expect(screen.queryByText('50 g')).toBeNull();
     expect(screen.getByText('100 g')).toBeTruthy();
 
-    fireEvent.press(screen.getByText('Add Meal'));
+    pressAction(screen, navigation, 'Save');
 
     // The saved meal is logged as it is, so no ingredient list is sent.
     expect(mockAddMeal.mock.calls[0][0].foods).toBeUndefined();
@@ -2414,7 +2427,7 @@ describe('FoodEntryAddScreen', () => {
 
     fireEvent.press(screen.getByText('Apply'));
 
-    fireEvent.press(screen.getByText('Add Meal'));
+    pressAction(screen, navigation, 'Save');
 
     expect(mockAddMeal).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -2474,7 +2487,7 @@ describe('FoodEntryAddScreen', () => {
 
     fireEvent.press(screen.getByText('Apply'));
 
-    fireEvent.press(screen.getByText('Add Meal'));
+    pressAction(screen, navigation, 'Save');
 
     expect(mockAddMeal).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -2550,7 +2563,7 @@ describe('FoodEntryAddScreen', () => {
 
     fireEvent.press(screen.getByText('Remove from Meal'));
 
-    fireEvent.press(screen.getByText('Add Meal'));
+    pressAction(screen, navigation, 'Save');
 
     expect(mockAddMeal).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -2620,7 +2633,7 @@ describe('FoodEntryAddScreen', () => {
       screen.getByLabelText('Note for this entry'),
       'half portion'
     );
-    fireEvent.press(screen.getByText('Add Meal'));
+    pressAction(screen, navigation, 'Save');
 
     expect(mockAddMeal).toHaveBeenCalledWith(
       expect.objectContaining({ notes: 'half portion' })
@@ -2659,7 +2672,7 @@ describe('FoodEntryAddScreen', () => {
     expect(screen.getByText('Meal')).toBeTruthy();
     expect(screen.getByText(/· 1 cup per serving/)).toBeTruthy();
 
-    fireEvent.press(screen.getByText('Add Food'));
+    pressAction(screen, navigation, 'Save');
 
     expect(mockAddEntry).toHaveBeenCalledWith({
       saveFoodPayload: undefined,
@@ -2687,11 +2700,87 @@ describe('FoodEntryAddScreen', () => {
       date: '2026-04-23',
     });
 
-    fireEvent.press(screen.getByText('Add Food'));
+    pressAction(screen, navigation, 'Save');
 
     expect(mockPopToTop).toHaveBeenCalledTimes(1);
     expect(mockPop).not.toHaveBeenCalled();
     expect(navigation.dispatch).toHaveBeenCalledWith({ type: 'POP_TO_TOP' });
+  });
+
+  describe('keep adding: returning to an open diary food search', () => {
+    it('returns to the food search with an incremented count after a food add', () => {
+      mockStackRoutes = [
+        { key: 'tabs', name: 'Tabs' },
+        {
+          key: 'search',
+          name: 'FoodSearch',
+          params: { date: '2026-04-23', mealTypeId: 'sys-b', loggedCount: 2 },
+        },
+        { key: 'add', name: 'FoodEntryAdd' },
+      ];
+      const screen = renderScreen({ item: baseLocalItem, date: '2026-04-23' });
+
+      pressAction(screen, navigation, 'Save');
+
+      expect(mockPopTo).toHaveBeenCalledWith(
+        'FoodSearch',
+        { loggedCount: 3 },
+        { merge: true }
+      );
+      expect(mockPopToTop).not.toHaveBeenCalled();
+    });
+
+    it('returns to the food search after a meal add too', () => {
+      mockStackRoutes = [
+        { key: 'tabs', name: 'Tabs' },
+        { key: 'search', name: 'FoodSearch', params: { date: '2026-04-23' } },
+        { key: 'add', name: 'FoodEntryAdd' },
+      ];
+      const screen = renderScreen({ item: baseMealItem, date: '2026-04-23' });
+
+      pressAction(screen, navigation, 'Save');
+
+      expect(mockPopTo).toHaveBeenCalledWith(
+        'FoodSearch',
+        { loggedCount: 1 },
+        { merge: true }
+      );
+    });
+
+    it('ignores a food search open in a picker mode and goes to the diary', () => {
+      mockStackRoutes = [
+        { key: 'tabs', name: 'Tabs' },
+        {
+          key: 'search',
+          name: 'FoodSearch',
+          params: { pickerMode: 'meal-builder' },
+        },
+        { key: 'add', name: 'FoodEntryAdd' },
+      ];
+      const screen = renderScreen({ item: baseLocalItem, date: '2026-04-23' });
+
+      pressAction(screen, navigation, 'Save');
+
+      expect(mockPopTo).not.toHaveBeenCalled();
+      expect(mockPopToTop).toHaveBeenCalledTimes(1);
+    });
+
+    it('a basket returnDepth still wins over returning to the search', () => {
+      mockStackRoutes = [
+        { key: 'search', name: 'FoodSearch', params: {} },
+        { key: 'add', name: 'FoodEntryAdd' },
+      ];
+      const screen = renderScreen({
+        item: baseLocalItem,
+        date: '2026-04-23',
+        returnDepth: 1,
+      });
+
+      pressAction(screen, navigation, 'Save');
+
+      expect(mockPop).toHaveBeenCalledWith(1);
+      expect(mockPopTo).not.toHaveBeenCalled();
+    });
   });
 
   it('pops back one screen after an add launched with a basket returnDepth', () => {
@@ -2701,7 +2790,7 @@ describe('FoodEntryAddScreen', () => {
       returnDepth: 1,
     });
 
-    fireEvent.press(screen.getByText('Add Food'));
+    pressAction(screen, navigation, 'Save');
 
     expect(mockPop).toHaveBeenCalledWith(1);
     expect(mockPopToTop).not.toHaveBeenCalled();
@@ -2713,7 +2802,7 @@ describe('FoodEntryAddScreen', () => {
       date: '2026-04-23',
     });
 
-    fireEvent.press(screen.getByText('Add Meal'));
+    pressAction(screen, navigation, 'Save');
 
     expect(mockInvalidateMealCache).toHaveBeenCalled();
     expect(mockPopToTop).toHaveBeenCalledTimes(1);
@@ -2727,7 +2816,7 @@ describe('FoodEntryAddScreen', () => {
       returnDepth: 1,
     });
 
-    fireEvent.press(screen.getByText('Add Meal'));
+    pressAction(screen, navigation, 'Save');
 
     expect(mockPop).toHaveBeenCalledWith(1);
     expect(mockPopToTop).not.toHaveBeenCalled();
@@ -2882,7 +2971,7 @@ describe('FoodEntryAddScreen', () => {
       });
     });
 
-    fireEvent.press(screen.getByText('Add Food'));
+    pressAction(screen, navigation, 'Save');
 
     expect(mockAddEntry).toHaveBeenCalledWith({
       saveFoodPayload: undefined,
@@ -3012,7 +3101,7 @@ describe('FoodEntryAddScreen', () => {
       });
     });
 
-    fireEvent.press(screen.getByText('Add Food'));
+    pressAction(screen, navigation, 'Save');
 
     await waitFor(() => {
       expect(mockAddEntry).toHaveBeenCalledWith({
@@ -3078,7 +3167,7 @@ describe('FoodEntryAddScreen', () => {
       });
     });
 
-    fireEvent.press(screen.getByText('Add Food'));
+    pressAction(screen, navigation, 'Save');
 
     await waitFor(() => {
       expect(mockAddEntryAsync).toHaveBeenCalledWith({
@@ -3225,7 +3314,7 @@ describe('FoodEntryAddScreen', () => {
         );
       });
 
-      fireEvent.press(screen.getByText('Add Food'));
+      pressAction(screen, navigation, 'Save');
       await waitFor(() => expect(mockCreateVariant).toHaveBeenCalledTimes(1));
     };
 
@@ -3301,7 +3390,7 @@ describe('FoodEntryAddScreen', () => {
         );
       });
 
-      fireEvent.press(screen.getByText('Add Food'));
+      pressAction(screen, navigation, 'Save');
     };
 
     it('refuses an NFC tag pick whose saved serving had its nutrition changed here', async () => {
@@ -3394,7 +3483,7 @@ describe('FoodEntryAddScreen', () => {
         });
       });
 
-      fireEvent.press(screen.getByText('Add Food'));
+      pressAction(screen, navigation, 'Save');
 
       await waitFor(() => {
         expect(mockAddEntry).toHaveBeenCalledWith(
@@ -3409,7 +3498,7 @@ describe('FoodEntryAddScreen', () => {
 
     it('updates selectedVariantId for external foods when draft is returned', async () => {
       // External foods don't have persisted variant IDs, so draft ID update is correct.
-      const screen = renderScreen({
+      renderScreen({
         item: baseExternalItem,
         date: '2026-04-23',
         adjustedValues: {
@@ -3439,7 +3528,7 @@ describe('FoodEntryAddScreen', () => {
       });
 
       // For external foods the screen should render without crash
-      expect(screen.getByText('Add Food')).toBeTruthy();
+      expect(findHeaderItem(navigation, 'Save')).toBeDefined();
     });
 
     it('passes displayValues-based selectedUnitSelection when re-opening AdjustNutrition after draft return', async () => {
@@ -3472,7 +3561,7 @@ describe('FoodEntryAddScreen', () => {
       });
 
       // Find and press the nutrition edit (pencil) button
-      pressActionByAccessibilityLabel(screen, navigation, 'Adjust nutrition');
+      pressActionByAccessibilityLabel(screen, navigation, 'Edit Nutrition');
       expect(navigation.navigate).toHaveBeenCalledWith(
         'FoodForm',
         expect.objectContaining({
@@ -3530,15 +3619,17 @@ describe('FoodEntryAddScreen', () => {
         isPending: true,
       });
 
-      renderScreen({ item: baseLocalItem, mealType: 'breakfast' });
+      const screen = renderScreen({
+        item: baseLocalItem,
+        mealType: 'breakfast',
+      });
 
       // The gate is scoped to the star: an in-flight favorite toggle must not
-      // block editing or saving.
-      const edit = findHeaderItemByAccessibilityLabel(
-        navigation,
-        'Adjust nutrition'
-      );
-      expect(edit?.disabled).toBe(false);
+      // block editing nutrition (the Edit Nutrition link on the facts card).
+      expect(
+        screen.getByTestId('nutrition-facts-edit').props.accessibilityState
+          ?.disabled
+      ).toBeFalsy();
     });
   });
 
@@ -3575,7 +3666,7 @@ describe('FoodEntryAddScreen', () => {
       fireEvent.changeText(screen.getByLabelText('You ate (cooked, g)'), '300');
       expect(screen.getByTestId('quantity-input').props.value).toBe('120');
 
-      fireEvent.press(screen.getByText('Add Food'));
+      pressAction(screen, navigation, 'Save');
       expect(mockAddEntry).toHaveBeenCalledWith(
         expect.objectContaining({
           createEntryPayload: expect.objectContaining({
@@ -3653,7 +3744,7 @@ describe('FoodEntryAddScreen', () => {
       returnFromAdjust(screen, riceAdjustment('200', 'g'));
       expect(screen.getByTestId('quantity-input').props.value).toBe('120');
 
-      fireEvent.press(screen.getByText('Add Food'));
+      pressAction(screen, navigation, 'Save');
       expect(mockAddEntry).toHaveBeenCalledWith(
         expect.objectContaining({
           createEntryPayload: expect.objectContaining({
@@ -3671,7 +3762,7 @@ describe('FoodEntryAddScreen', () => {
       returnFromAdjust(screen, riceAdjustment('0.5', 'kg'));
       expect(screen.getByTestId('quantity-input').props.value).toBe('0.5');
 
-      fireEvent.press(screen.getByText('Add Food'));
+      pressAction(screen, navigation, 'Save');
       const payload = mockAddEntry.mock.calls[0][0].createEntryPayload;
       expect(payload).toEqual(
         expect.objectContaining({ quantity: 0.5, unit: 'kg' })
@@ -3685,7 +3776,7 @@ describe('FoodEntryAddScreen', () => {
       returnFromAdjust(screen, riceAdjustment('100', 'kg'));
       expect(screen.getByTestId('quantity-input').props.value).toBe('100');
 
-      fireEvent.press(screen.getByText('Add Food'));
+      pressAction(screen, navigation, 'Save');
       const payload = mockAddEntry.mock.calls[0][0].createEntryPayload;
       expect(payload).toEqual(
         expect.objectContaining({ quantity: 100, unit: 'kg' })
@@ -3695,7 +3786,7 @@ describe('FoodEntryAddScreen', () => {
 
     it('sends no cooked weight while the switch is off', () => {
       const screen = renderScreen({ item: riceItem, date: '2026-11-15' });
-      fireEvent.press(screen.getByText('Add Food'));
+      pressAction(screen, navigation, 'Save');
       expect(
         mockAddEntry.mock.calls[0][0].createEntryPayload
       ).not.toHaveProperty('cooked_quantity');

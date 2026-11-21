@@ -29,10 +29,8 @@ import { NoteMarkdown } from '../components/NoteMarkdown';
 import { usableFoodImages } from '../utils/foodImages';
 import BottomSheetPicker from '../components/BottomSheetPicker';
 import IngredientQuantityModal from '../components/IngredientQuantityModal';
-import {
-  FoodNutritionHeader,
-  FoodNutrientBreakdown,
-} from '../components/FoodNutritionSummary';
+import NutritionFactsCard from '../components/NutritionFactsCard';
+import VerifiedBadge from '../components/VerifiedBadge';
 import { fetchGoalsRange } from '../services/api/goalsApi';
 import {
   setPendingMealIngredientSelection,
@@ -45,7 +43,10 @@ import {
 } from '../services/mealPlanSelection';
 import { setPendingContainerLinkSelection } from '../services/waterContainerLinkSelection';
 import { setPendingActionTagSelection } from '../services/actionTagSelection';
-import { isFoodSelectionMode } from '../utils/foodPickerMode';
+import {
+  isDiaryFoodSearch,
+  isFoodSelectionMode,
+} from '../utils/foodPickerMode';
 import { CreateFoodEntryPayload } from '../services/api/foodEntriesApi';
 import { addDays, getTodayDate, getDeviceTimezone } from '../utils/dateUtils';
 import { useDiaryDateStore } from '../stores/diaryDateStore';
@@ -84,7 +85,6 @@ import {
 import { useScreenHeader } from '../hooks/useScreenHeader';
 import { useEnergyUnit } from '../hooks/useEnergyUnit';
 import { energyUnitLabel, roundedEnergy } from '../utils/energyUnit';
-import { getNetCarbsValue } from '../utils/nutrientUtils';
 import {
   useCreateFoodVariant,
   useFoodVariants,
@@ -97,7 +97,10 @@ import CalendarSheet, {
   type CalendarSheetRef,
 } from '../components/CalendarSheet';
 import DateSelectRow from '../components/DateSelectRow';
-import { FooterSaveBar } from '../components/FormScreenChrome';
+import FoodThumbnail from '../components/FoodThumbnail';
+import { useFoodImageSourceContext } from '../components/FoodImageSourceProvider';
+import { KeyboardStickyView } from 'react-native-keyboard-controller';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { FoodFormData } from '../components/FoodForm';
 import {
   FOOD_VARIANT_FIELDS,
@@ -120,7 +123,10 @@ import {
   toFormString,
   parseOptional,
 } from '../types/foodInfo';
-import type { RootStackScreenProps } from '../types/navigation';
+import type {
+  RootStackParamList,
+  RootStackScreenProps,
+} from '../types/navigation';
 import {
   buildCreateFoodVariantInput,
   buildCreateFoodVariantPayload,
@@ -1249,6 +1255,43 @@ const FoodEntryAddScreen: React.FC<FoodEntryAddScreenProps> = ({
     };
   };
 
+  // After logging to the diary: a basket flow pops back `returnDepth` screens;
+  // otherwise, when a diary food search is open underneath, return to it so
+  // more foods can be added (it shows a Done button), else go to the diary.
+  const leaveAfterLogging = () => {
+    const returnDepthParam = route.params?.returnDepth;
+    if (returnDepthParam) {
+      navigation.dispatch(StackActions.pop(returnDepthParam));
+      return;
+    }
+    const searchRoute = [...navigation.getState().routes]
+      .reverse()
+      .find(
+        (r) =>
+          r.name === 'FoodSearch' &&
+          isDiaryFoodSearch(r.params as RootStackParamList['FoodSearch'])
+      );
+    if (!searchRoute) {
+      navigation.dispatch(StackActions.popToTop());
+      return;
+    }
+    const searchParams = searchRoute.params as RootStackParamList['FoodSearch'];
+    navigation.dispatch(
+      StackActions.popTo(
+        'FoodSearch',
+        { loggedCount: (searchParams?.loggedCount ?? 0) + 1 },
+        { merge: true }
+      )
+    );
+    Toast.show({
+      type: 'success',
+      text1: t('foodEntryAdd.addedToDiary', {
+        defaultValue: 'Added {{name}}',
+        name: adjustedValues?.name || activeItem.name,
+      }),
+    });
+  };
+
   const {
     addEntry,
     addEntryAsync,
@@ -1297,18 +1340,9 @@ const FoodEntryAddScreen: React.FC<FoodEntryAddScreenProps> = ({
         }
       }
       invalidateCache(selectedDate);
-      // Log-entry adds normally return to the diary root. A returnDepth
-      // param (set when launched with a food-search basket in progress)
-      // pops back that many screens so the basket survives. Read the param
-      // directly — the `returnDepth` local above defaults to 1 for the
-      // picker-mode flows, and using it here would turn every plain add
-      // into a one-screen pop.
-      const logEntryReturnDepth = route.params?.returnDepth;
-      navigation.dispatch(
-        logEntryReturnDepth
-          ? StackActions.pop(logEntryReturnDepth)
-          : StackActions.popToTop()
-      );
+      // Reads route.params.returnDepth directly, not the `returnDepth` local
+      // above, which defaults to 1 for the picker-mode flows.
+      leaveAfterLogging();
     },
   });
 
@@ -1319,12 +1353,7 @@ const FoodEntryAddScreen: React.FC<FoodEntryAddScreenProps> = ({
   } = useAddFoodEntryMeal({
     onSuccess: () => {
       invalidateMealCache(selectedDate);
-      const mealReturnDepth = route.params?.returnDepth;
-      navigation.dispatch(
-        mealReturnDepth
-          ? StackActions.pop(mealReturnDepth)
-          : StackActions.popToTop()
-      );
+      leaveAfterLogging();
     },
   });
 
@@ -1735,7 +1764,7 @@ const FoodEntryAddScreen: React.FC<FoodEntryAddScreenProps> = ({
 
   // The day's goal as the Diary shows it (adaptive, goal mode and calorie
   // cycling applied), so "% of goal" matches the Diary's numbers.
-  const { data: goals, isLoading: isGoalsLoading } = useQuery({
+  const { data: goals } = useQuery({
     queryKey: goalsRangeQueryKey(selectedDate, selectedDate, true),
     queryFn: () => fetchGoalsRange(selectedDate, selectedDate, true),
     select: (range) => range[selectedDate],
@@ -1747,20 +1776,10 @@ const FoodEntryAddScreen: React.FC<FoodEntryAddScreenProps> = ({
     return Math.round((value / goalValue) * 100);
   };
 
-  const carbsForGoal =
-    showNetCarbs && displayValues.fiber !== undefined
-      ? getNetCarbsValue(displayValues.carbs, displayValues.fiber)
-      : displayValues.carbs;
   const calorieGoalPct = goalPercent(
     scaled(displayValues.calories),
     goals?.calories
   );
-  const proteinGoalPct = goalPercent(
-    scaled(displayValues.protein),
-    goals?.protein
-  );
-  const carbsGoalPct = goalPercent(scaled(carbsForGoal), goals?.carbs);
-  const fatGoalPct = goalPercent(scaled(displayValues.fat), goals?.fat);
 
   const mealPickerOptions = mealTypes.map((mealType) => ({
     label: getMealTypeDisplayLabel(mealType, t),
@@ -1860,6 +1879,18 @@ const FoodEntryAddScreen: React.FC<FoodEntryAddScreenProps> = ({
   ]);
 
   const showHeaderActions = activeItem.source !== 'meal' && !recipeImportTarget;
+
+  // Bottom amount bar: its measured height reserves room under the scroll
+  // content, and its bottom padding clears Android's navigation bar.
+  const insets = useSafeAreaInsets();
+  const amountBarBottomPadding = Math.max(insets.bottom, 16);
+  const [amountBarHeight, setAmountBarHeight] = useState(96);
+  const getImageSource = useFoodImageSourceContext();
+  const headerImage =
+    usableFoodImages(activeItem.images)[0] ??
+    activeItem.image_source_url ??
+    activeItem.image_url ??
+    null;
   const showSaveExternalAction = activeItem.source === 'external';
 
   // Favorites: persisted local foods and saved meals can be starred. External
@@ -1902,10 +1933,53 @@ const FoodEntryAddScreen: React.FC<FoodEntryAddScreenProps> = ({
     isFavorite,
   ]);
 
-  // The food name lives in the body's nutrition summary, so the header title
-  // stays blank. The favorite star is accent-tinted (role:'primary') so it
-  // reads as a button; edit/save stay neutral. The sticky footer "Add Food"/
-  // "Add Meal" button remains this screen's main accent action.
+  // The food name sits directly under the bar, so the header title stays
+  // blank. Save is the one accent action; the star and bookmark stay neutral,
+  // and editing nutrition is the "Edit Nutrition" link on the facts card.
+  const submitDisabled =
+    isActionPending ||
+    !recipeSelectionAvailable ||
+    (!isSelectionMode && !effectiveMealId) ||
+    quantity <= 0 ||
+    (quantityLocked && !cookedResult);
+
+  const handleSubmit = () => {
+    if (isSelectionMode) {
+      void handleSelectionAdd();
+      return;
+    }
+
+    if (!effectiveMealId) return;
+
+    if (activeItem.source === 'meal') {
+      addMeal(buildFoodEntryMealPayload());
+      return;
+    }
+    if (activeItem.source === 'external' && pendingVariantToPersist) {
+      void addEntryAsync({
+        saveFoodPayload: buildSaveFoodPayload(),
+        saveThenCreateVariantPayload: buildCreateFoodVariantInput(
+          pendingVariantToPersist
+        ),
+        ...(activeItem.externalVariants
+          ? { externalVariants: activeItem.externalVariants }
+          : {}),
+        createEntryPayload: buildFoodEntryPayload(),
+      }).catch(() => undefined);
+      return;
+    }
+
+    const saveFoodPayload =
+      activeItem.source === 'external' ? buildSaveFoodPayload() : undefined;
+    addEntry({
+      saveFoodPayload,
+      ...(activeItem.source === 'external'
+        ? { externalVariants: activeItem.externalVariants }
+        : {}),
+      createEntryPayload: buildFoodEntryPayload(),
+    });
+  };
+
   const header = useScreenHeader({
     topInset: 'android-only',
     nativeTitle: '',
@@ -1915,79 +1989,68 @@ const FoodEntryAddScreen: React.FC<FoodEntryAddScreenProps> = ({
       disabled: isActionPending,
       identifier: 'food-entry-add-cancel',
     },
-    // The star renders for any favoritable item (incl. meals, which suppress the
-    // edit/save actions); edit + save only render when showHeaderActions is true.
-    right:
-      canFavorite || showHeaderActions
+    // The star renders for any favoritable item (incl. meals); the save-food
+    // bookmark only for external foods. Save (the add action) is always last.
+    right: [
+      ...(canFavorite
         ? [
-            ...(canFavorite
+            {
+              kind: 'icon',
+              sfSymbol: isFavorite ? 'star.fill' : 'star',
+              ionicon: isFavorite ? 'star' : 'star-outline',
+              // Neutral: the header's one accent action is Save.
+              role: 'secondary',
+              // Also gated on the toggle's own mutation: onMutate flips the
+              // cache optimistically, so a second tap before the first
+              // settles sends the OPPOSITE operation. Two in-flight writes
+              // can then land out of order and leave the server in the
+              // state opposite the user's last tap.
+              // Also disabled offline: the favorites query is gated on
+              // isConnected, so a tap offline would fire a guaranteed-fail
+              // request and surface an error toast.
+              disabled: isActionPending || isFavoritePending || !isConnected,
+              onPress: handleToggleFavorite,
+              accessibilityLabel: isFavorite
+                ? t('foodEntryAdd.actions.removeFavorite', {
+                    defaultValue: 'Remove from favorites',
+                  })
+                : t('foodEntryAdd.actions.addFavorite', {
+                    defaultValue: 'Add to favorites',
+                  }),
+              identifier: 'food-entry-add-favorite',
+            } as const,
+          ]
+        : []),
+      ...(showHeaderActions
+        ? [
+            ...(showSaveExternalAction
               ? [
                   {
                     kind: 'icon',
-                    sfSymbol: isFavorite ? 'star.fill' : 'star',
-                    ionicon: isFavorite ? 'star' : 'star-outline',
-                    // Accent-tinted (role:'primary') so the star reads as a
-                    // tappable button rather than a neutral glyph.
-                    role: 'primary',
-                    // Also gated on the toggle's own mutation: onMutate flips the
-                    // cache optimistically, so a second tap before the first
-                    // settles sends the OPPOSITE operation. Two in-flight writes
-                    // can then land out of order and leave the server in the
-                    // state opposite the user's last tap.
-                    // Also disabled offline: the favorites query is gated on
-                    // isConnected, so a tap offline would fire a guaranteed-fail
-                    // request and surface an error toast.
-                    disabled:
-                      isActionPending || isFavoritePending || !isConnected,
-                    onPress: handleToggleFavorite,
-                    accessibilityLabel: isFavorite
-                      ? t('foodEntryAdd.actions.removeFavorite', {
-                          defaultValue: 'Remove from favorites',
-                        })
-                      : t('foodEntryAdd.actions.addFavorite', {
-                          defaultValue: 'Add to favorites',
-                        }),
-                    identifier: 'food-entry-add-favorite',
-                  } as const,
-                ]
-              : []),
-            ...(showHeaderActions
-              ? [
-                  {
-                    kind: 'icon',
-                    sfSymbol: 'pencil',
-                    ionicon: 'create-outline',
+                    sfSymbol: 'bookmark',
+                    ionicon: 'bookmark-outline',
                     role: 'secondary',
+                    busy: isSavePending || isCreateVariantPending,
                     disabled: isActionPending,
-                    onPress: handleAdjustNutrition,
-                    accessibilityLabel: t(
-                      'foodEntryAdd.actions.adjustNutrition',
-                      { defaultValue: 'Adjust nutrition' }
-                    ),
-                    identifier: 'food-entry-add-edit',
+                    onPress: () => void handleSaveExternalFood(),
+                    accessibilityLabel: t('foodEntryAdd.actions.saveFood', {
+                      defaultValue: 'Save Food',
+                    }),
+                    identifier: 'food-entry-add-save',
                   } as const,
-                  ...(showSaveExternalAction
-                    ? [
-                        {
-                          kind: 'icon',
-                          sfSymbol: 'bookmark',
-                          ionicon: 'bookmark-outline',
-                          role: 'secondary',
-                          busy: isSavePending || isCreateVariantPending,
-                          disabled: isActionPending,
-                          onPress: () => void handleSaveExternalFood(),
-                          accessibilityLabel: t(
-                            'foodEntryAdd.actions.saveFood',
-                            { defaultValue: 'Save Food' }
-                          ),
-                          identifier: 'food-entry-add-save',
-                        } as const,
-                      ]
-                    : []),
                 ]
               : []),
           ]
-        : null,
+        : []),
+      {
+        kind: 'primary',
+        label: t('common.save', { defaultValue: 'Save' }),
+        busy: isActionPending,
+        disabled: submitDisabled,
+        onPress: handleSubmit,
+        identifier: 'food-entry-add-submit',
+      } as const,
+    ],
   });
 
   return (
@@ -1996,7 +2059,8 @@ const FoodEntryAddScreen: React.FC<FoodEntryAddScreenProps> = ({
 
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-4 pt-4 pb-4 gap-4"
+        contentContainerClassName="px-4 pt-2 gap-4"
+        contentContainerStyle={{ paddingBottom: amountBarHeight + 16 }}
       >
         {recipeImportTarget && (
           <Text className="text-text-secondary">
@@ -2050,20 +2114,43 @@ const FoodEntryAddScreen: React.FC<FoodEntryAddScreenProps> = ({
             </View>
           )}
 
-        <FoodNutritionHeader
-          name={adjustedValues?.name || activeItem.name}
-          brand={adjustedValues?.brand ?? activeItem.brand}
+        <View className="flex-row items-center gap-3">
+          <FoodThumbnail
+            image={headerImage}
+            getImageSource={getImageSource}
+            size={56}
+            variant={activeItem.source === 'meal' ? 'meal' : 'food'}
+            showFallback={false}
+            testID="food-entry-add-image"
+          />
+          <View className="flex-1">
+            <View className="flex-row items-start gap-1.5">
+              <Text className="text-text-primary text-xl font-semibold flex-shrink">
+                {adjustedValues?.name || activeItem.name}
+              </Text>
+              {activeItem.provider_verified ? (
+                <VerifiedBadge size="md" style={{ marginTop: 3 }} />
+              ) : null}
+            </View>
+            {(adjustedValues?.brand ?? activeItem.brand) ? (
+              <Text className="text-text-secondary text-base mt-0.5">
+                {adjustedValues?.brand ?? activeItem.brand}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+
+        <NutritionFactsCard
           values={displayValues}
           servings={servings}
-          goalPercentages={{
-            calories: calorieGoalPct,
-            protein: proteinGoalPct,
-            carbs: carbsGoalPct,
-            fat: fatGoalPct,
-          }}
-          goalsLoading={isGoalsLoading}
+          amountLabel={`${formatLocalizedNumber(quantity, { maximumFractionDigits: 2 })} ${quantityUnitLabel}`}
+          calorieGoalPercent={calorieGoalPct}
           showNetCarbs={showNetCarbs}
-          provider_verified={activeItem.provider_verified}
+          customNutrients={selectedCustomNutrients}
+          onEditNutrition={
+            showHeaderActions ? handleAdjustNutrition : undefined
+          }
+          editDisabled={isActionPending}
         />
 
         {route.params.barcodeLookup && (
@@ -2089,59 +2176,6 @@ const FoodEntryAddScreen: React.FC<FoodEntryAddScreenProps> = ({
         )}
 
         <View className="mt-2">
-          <View className="flex-row items-center">
-            <StepperInput
-              value={quantityText}
-              onChangeText={updateQuantityText}
-              onBlur={clampQuantity}
-              onDecrement={() => adjustQuantity(-1)}
-              onIncrement={() => adjustQuantity(1)}
-              inputProps={{ editable: !quantityLocked }}
-            />
-            {variantPickerOptions.length > 1 ? (
-              <BottomSheetPicker
-                value={selectedVariantId ?? variantPickerOptions[0]?.id ?? ''}
-                options={variantPickerOptions.map((variant) => ({
-                  label: variant.label,
-                  value: variant.id ?? '',
-                }))}
-                onSelect={handleVariantChange}
-                title={t('foodEntryAdd.pickers.selectServing', {
-                  defaultValue: 'Select Serving',
-                })}
-                renderTrigger={({ onPress }) => (
-                  <TouchableOpacity
-                    onPress={onPress}
-                    accessibilityRole="button"
-                    accessibilityLabel={t(
-                      'foodEntryAdd.pickers.selectServing',
-                      { defaultValue: 'Select Serving' }
-                    )}
-                    disabled={isCreateVariantPending}
-                    className="flex-1 flex-row items-center justify-between bg-raised border border-border-subtle rounded-lg px-3 py-3 ml-2 gap-2"
-                  >
-                    <Text className="text-text-primary text-base font-medium flex-1">
-                      {quantityUnitLabel}
-                    </Text>
-                    {isCreateVariantPending ? (
-                      <ActivityIndicator size="small" color={accentColor} />
-                    ) : (
-                      <Icon
-                        name="chevron-down"
-                        size={16}
-                        color={textPrimary}
-                        weight="medium"
-                      />
-                    )}
-                  </TouchableOpacity>
-                )}
-              />
-            ) : (
-              <Text className="text-text-primary text-base font-medium ml-2">
-                {quantityUnitLabel}
-              </Text>
-            )}
-          </View>
           <View className="flex-row items-center mt-2">
             <Text className="text-text-secondary text-sm">
               {formatLocalizedNumber(servings, { maximumFractionDigits: 1 })}{' '}
@@ -2450,13 +2484,6 @@ const FoodEntryAddScreen: React.FC<FoodEntryAddScreenProps> = ({
           </View>
         ) : null}
 
-        <FoodNutrientBreakdown
-          values={displayValues}
-          servings={servings}
-          showNetCarbs={showNetCarbs}
-          customNutrients={selectedCustomNutrients}
-        />
-
         {/*
           Notes sit below the nutrient breakdown on purpose: the numbers are
           what this screen is opened to check, and a long recipe above them
@@ -2537,60 +2564,74 @@ const FoodEntryAddScreen: React.FC<FoodEntryAddScreenProps> = ({
         />
       </ScrollView>
 
-      {/* Sticky footer */}
-      <FooterSaveBar
-        label={
-          activeItem.source === 'meal'
-            ? t('foodEntryAdd.actions.addMeal', { defaultValue: 'Add Meal' })
-            : t('foodEntryAdd.actions.addFood', { defaultValue: 'Add Food' })
-        }
-        busy={isActionPending}
-        disabled={
-          isActionPending ||
-          !recipeSelectionAvailable ||
-          (!isSelectionMode && !effectiveMealId) ||
-          quantity <= 0 ||
-          (quantityLocked && !cookedResult)
-        }
-        onPress={() => {
-          if (isSelectionMode) {
-            void handleSelectionAdd();
-            return;
+      {/* Amount bar: docked at the bottom and lifted above the keyboard while
+          the amount is being typed. The add action is the header's Save. */}
+      <KeyboardStickyView
+        offset={{ closed: 0, opened: amountBarBottomPadding - 8 }}
+      >
+        <View
+          className="bg-chrome border-t border-chrome-border px-4 pt-3"
+          style={{ paddingBottom: amountBarBottomPadding }}
+          onLayout={(event) =>
+            setAmountBarHeight(event.nativeEvent.layout.height)
           }
-
-          if (!effectiveMealId) return;
-
-          if (activeItem.source === 'meal') {
-            addMeal(buildFoodEntryMealPayload());
-            return;
-          }
-          if (activeItem.source === 'external' && pendingVariantToPersist) {
-            void addEntryAsync({
-              saveFoodPayload: buildSaveFoodPayload(),
-              saveThenCreateVariantPayload: buildCreateFoodVariantInput(
-                pendingVariantToPersist
-              ),
-              ...(activeItem.externalVariants
-                ? { externalVariants: activeItem.externalVariants }
-                : {}),
-              createEntryPayload: buildFoodEntryPayload(),
-            }).catch(() => undefined);
-            return;
-          }
-
-          const saveFoodPayload =
-            activeItem.source === 'external'
-              ? buildSaveFoodPayload()
-              : undefined;
-          addEntry({
-            saveFoodPayload,
-            ...(activeItem.source === 'external'
-              ? { externalVariants: activeItem.externalVariants }
-              : {}),
-            createEntryPayload: buildFoodEntryPayload(),
-          });
-        }}
-      />
+          testID="food-entry-amount-bar"
+        >
+          <View className="flex-row items-center">
+            <StepperInput
+              value={quantityText}
+              onChangeText={updateQuantityText}
+              onBlur={clampQuantity}
+              onDecrement={() => adjustQuantity(-1)}
+              onIncrement={() => adjustQuantity(1)}
+              inputProps={{ editable: !quantityLocked }}
+            />
+            {variantPickerOptions.length > 1 ? (
+              <BottomSheetPicker
+                value={selectedVariantId ?? variantPickerOptions[0]?.id ?? ''}
+                options={variantPickerOptions.map((variant) => ({
+                  label: variant.label,
+                  value: variant.id ?? '',
+                }))}
+                onSelect={handleVariantChange}
+                title={t('foodEntryAdd.pickers.selectServing', {
+                  defaultValue: 'Select Serving',
+                })}
+                renderTrigger={({ onPress }) => (
+                  <TouchableOpacity
+                    onPress={onPress}
+                    accessibilityRole="button"
+                    accessibilityLabel={t(
+                      'foodEntryAdd.pickers.selectServing',
+                      { defaultValue: 'Select Serving' }
+                    )}
+                    disabled={isCreateVariantPending}
+                    className="flex-1 flex-row items-center justify-between bg-raised border border-border-subtle rounded-lg px-3 py-3 ml-2 gap-2"
+                  >
+                    <Text className="text-text-primary text-base font-medium flex-1">
+                      {quantityUnitLabel}
+                    </Text>
+                    {isCreateVariantPending ? (
+                      <ActivityIndicator size="small" color={accentColor} />
+                    ) : (
+                      <Icon
+                        name="chevron-down"
+                        size={16}
+                        color={textPrimary}
+                        weight="medium"
+                      />
+                    )}
+                  </TouchableOpacity>
+                )}
+              />
+            ) : (
+              <Text className="text-text-primary text-base font-medium ml-2">
+                {quantityUnitLabel}
+              </Text>
+            )}
+          </View>
+        </View>
+      </KeyboardStickyView>
 
       <CalendarSheet
         ref={calendarRef}

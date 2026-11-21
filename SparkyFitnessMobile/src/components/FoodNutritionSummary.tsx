@@ -94,6 +94,8 @@ interface FoodNutrientBreakdownProps {
   showNetCarbs?: boolean;
   /** Raw custom nutrient values for this food/variant (key = nutrient name, value = amount per serving). */
   customNutrients?: Record<string, string | number> | null;
+  /** Show every nutrient row with no "show more" toggle. */
+  showAll?: boolean;
 }
 
 /** Full nutrient list (fiber, sugars, sodium, etc.) with the "show more" toggle. */
@@ -102,6 +104,7 @@ export const FoodNutrientBreakdown: React.FC<FoodNutrientBreakdownProps> = ({
   servings = 1,
   showNetCarbs = false,
   customNutrients,
+  showAll = false,
 }) => {
   const accentColor = useCSSVariable('--color-accent-primary') as string;
   const { isConnected } = useServerConnection();
@@ -201,7 +204,7 @@ export const FoodNutrientBreakdown: React.FC<FoodNutrientBreakdownProps> = ({
 
   const hasAdditional =
     additionalNutrients.length > 0 || customNutrientRows.length > 0;
-  const showAdditionalRows = showMoreNutrients && hasAdditional;
+  const showAdditionalRows = (showAll || showMoreNutrients) && hasAdditional;
   const layoutTransition = LinearTransition.duration(250);
 
   return (
@@ -234,7 +237,7 @@ export const FoodNutrientBreakdown: React.FC<FoodNutrientBreakdownProps> = ({
         </Animated.View>
       ) : null}
 
-      {hasAdditional ? (
+      {hasAdditional && !showAll ? (
         <Animated.View layout={layoutTransition}>
           <Button
             variant="ghost"

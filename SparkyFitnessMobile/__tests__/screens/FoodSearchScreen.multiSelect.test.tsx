@@ -45,6 +45,7 @@ import type { FoodItem } from '../../src/types/foods';
 // the factory): the screen imports it directly, so the real hook runs — this
 // suite exercises the real basket under the screen's wiring.
 jest.mock('../../src/hooks', () => ({
+  useMealTypes: jest.fn(() => ({ mealTypes: [] })),
   useExternalFoodSearch: jest.fn(),
   useExternalProviders: jest.fn(),
   useAllProvidersSearch: jest.fn(),

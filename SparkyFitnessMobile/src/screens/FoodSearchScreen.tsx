@@ -51,7 +51,9 @@ import {
   useDebounce,
   useFavorites,
   useProfile,
+  useMealTypes,
 } from '../hooks';
+import { getMealTypeDisplayLabel } from '../utils/mealNutrition';
 import {
   filterByOwnership,
   OWNERSHIP_FILTER_LABELS,
@@ -120,6 +122,9 @@ const FoodSearchScreen: React.FC<FoodSearchScreenProps> = ({
     (recipeImportTarget ? 'meal-builder' : 'log-entry');
   const mealTypeId = route.params?.mealTypeId;
   const mealPlanTarget = route.params?.mealPlanTarget;
+  // Foods logged from this search so far (FoodEntryAdd returns here after
+  // each add instead of going back to the diary).
+  const loggedCount = route.params?.loggedCount ?? 0;
   const isMealBuilderMode = pickerMode === 'meal-builder';
   const selectionPickerMode = isFoodSelectionMode(pickerMode)
     ? pickerMode
@@ -237,10 +242,19 @@ const FoodSearchScreen: React.FC<FoodSearchScreenProps> = ({
   const [basketBarHeight, setBasketBarHeight] = useState(64);
   // Gated on availability too: picker modes hide the bar, and reserving its
   // space there would leave a dead gap above the fold.
+  const showBasketBar = multiSelectAvailable && selectionCount > 0;
+  const showLoggedBar = !showBasketBar && loggedCount > 0;
   const basketListPadding =
-    multiSelectAvailable && selectionCount > 0
+    showBasketBar || showLoggedBar
       ? { paddingBottom: basketBarHeight + insets.bottom + 24 }
       : undefined;
+  const { mealTypes } = useMealTypes({ enabled: showLoggedBar });
+  const loggedMealType = mealTypeId
+    ? mealTypes.find((mt) => mt.id === mealTypeId)
+    : undefined;
+  const loggedMealLabel = loggedMealType
+    ? getMealTypeDisplayLabel(loggedMealType, t)
+    : undefined;
 
   const handleToggleFoodSelection = useCallback(
     (food: FoodItem) => {
@@ -1542,7 +1556,41 @@ const FoodSearchScreen: React.FC<FoodSearchScreenProps> = ({
           backing out and reappears — with Review — inside the meal-builder /
           meal-plan / container-link pickers, where Review would write diary
           entries. Same leak class FoodScanScreen guards for photo scans. */}
-      {multiSelectAvailable && selectionCount > 0 && (
+      {showLoggedBar && (
+        <View
+          className="absolute left-4 right-4 rounded-xl bg-raised border border-border-subtle flex-row items-center justify-between px-4 py-3"
+          style={{ bottom: insets.bottom + 12 }}
+          onLayout={(event) =>
+            setBasketBarHeight(event.nativeEvent.layout.height)
+          }
+          testID="food-search-logged-bar"
+        >
+          <View className="flex-row items-center gap-2 flex-1">
+            <Icon name="checkmark-circle" size={20} color={accentColor} />
+            <Text className="text-text-primary text-sm font-semibold flex-1">
+              {loggedMealLabel
+                ? t('foodSearch.logged.countToMeal', {
+                    defaultValue: '{{count}} added to {{meal}}',
+                    count: loggedCount,
+                    meal: loggedMealLabel,
+                  })
+                : t('foodSearch.logged.count', {
+                    defaultValue: '{{count}} added',
+                    count: loggedCount,
+                  })}
+            </Text>
+          </View>
+          <Button
+            variant="primary"
+            onPress={closeSearch}
+            className="px-5"
+            testID="food-search-done"
+          >
+            {t('common.done', { defaultValue: 'Done' })}
+          </Button>
+        </View>
+      )}
+      {showBasketBar && (
         <View
           className="absolute left-4 right-4 rounded-xl bg-raised border border-border-subtle flex-row items-center justify-between px-4 py-3"
           style={{ bottom: insets.bottom + 12 }}

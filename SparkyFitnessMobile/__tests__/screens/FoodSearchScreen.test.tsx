@@ -56,6 +56,7 @@ jest.mock('../../src/services/nativeTabBarPreference', () => ({
 }));
 
 jest.mock('../../src/hooks', () => ({
+  useMealTypes: jest.fn(() => ({ mealTypes: [] })),
   useExternalFoodSearch: jest.fn(),
   useExternalProviders: jest.fn(),
   useAllProvidersSearch: jest.fn(),
@@ -317,6 +318,52 @@ describe('FoodSearchScreen', () => {
     fireEvent.changeText(screen.getByPlaceholderText('Search foods...'), term);
     return screen;
   }
+
+  describe('after foods were logged from this search', () => {
+    const renderLogged = (
+      params: RootStackScreenProps<'FoodSearch'>['route']['params']
+    ) =>
+      render(
+        <SafeAreaProvider initialMetrics={{ insets, frame }}>
+          <FoodSearchScreen
+            navigation={navigation}
+            route={{ ...route, params }}
+          />
+        </SafeAreaProvider>
+      );
+
+    it('shows no logged bar before anything was added', () => {
+      const screen = renderLogged({ date: '2026-04-23' });
+      expect(screen.queryByTestId('food-search-logged-bar')).toBeNull();
+    });
+
+    it('shows how many were added to the meal, and Done closes the search', () => {
+      jest
+        .mocked(jest.requireMock('../../src/hooks').useMealTypes)
+        .mockReturnValue({
+          mealTypes: [
+            {
+              id: 'sys-b',
+              name: 'breakfast',
+              sort_order: 0,
+              user_id: null,
+              created_at: '',
+              is_visible: true,
+              show_in_quick_log: true,
+            },
+          ],
+        });
+      const screen = renderLogged({
+        date: '2026-04-23',
+        mealTypeId: 'sys-b',
+        loggedCount: 2,
+      });
+
+      expect(screen.getByText('2 added to Breakfast')).toBeTruthy();
+      fireEvent.press(screen.getByTestId('food-search-done'));
+      expect(navigation.goBack).toHaveBeenCalledTimes(1);
+    });
+  });
 
   it('renders local foods, saved meals, and the online provider together in one search', () => {
     mockUseFoodSearch.mockReturnValue({

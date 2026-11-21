@@ -1,4 +1,4 @@
-import type { FoodPickerMode } from '../types/navigation';
+import type { FoodPickerMode, RootStackParamList } from '../types/navigation';
 
 /**
  * True when the food search, scan, add and create screens are picking an item
@@ -12,5 +12,18 @@ export function isFoodSelectionMode(mode: FoodPickerMode | undefined): boolean {
     mode === 'meal-plan' ||
     mode === 'container-link' ||
     mode === 'action-tag'
+  );
+}
+
+/**
+ * True for a food search that logs to the diary (not a picker, not a recipe
+ * import), which is where FoodEntryAdd returns after an add so more foods can
+ * be logged in a row.
+ */
+export function isDiaryFoodSearch(
+  params: RootStackParamList['FoodSearch']
+): boolean {
+  return (
+    !params?.recipeImportTarget && !isFoodSelectionMode(params?.pickerMode)
   );
 }

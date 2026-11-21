@@ -3343,6 +3343,24 @@
     "saturatedFatCompact": "Sat. fat"
   },
   "foodNutrition": {
+    "facts": {
+      "title": "Nutrition Facts",
+      "edit": "Edit Nutrition",
+      "amount": "Amount",
+      "calories": "Calories",
+      "ofDailyGoal": "{{percent}}% of daily goal",
+      "notAvailable": "n/a",
+      "totalFat": "Total Fat",
+      "saturatedFat": "Sat Fat",
+      "cholesterol": "Cholesterol",
+      "sodium": "Sodium",
+      "totalCarbs": "Total Carbs",
+      "fiber": "Fiber",
+      "sugars": "Sugars",
+      "protein": "Protein",
+      "viewAll": "View All Nutrients",
+      "hideAll": "Hide All Nutrients"
+    },
     "hideExtra": "Hide extra nutrients ▴",
     "showMore": "Show more nutrients ▾"
   },
@@ -4343,6 +4361,7 @@
     "other": "Other"
   },
   "foodEntryAdd": {
+    "addedToDiary": "Added {{name}}",
     "errors": {
       "equivalentsNotSaved": "Some equivalent units could not be saved",
       "invalidAmount": "Invalid amount",
@@ -4516,6 +4535,12 @@
     }
   },
   "foodSearch": {
+    "logged": {
+      "count_one": "{{count}} added",
+      "count_other": "{{count}} added",
+      "countToMeal_one": "{{count}} added to {{meal}}",
+      "countToMeal_other": "{{count}} added to {{meal}}"
+    },
     "menu": {
       "newFood": "New Food",
       "newMeal": "New Meal",
