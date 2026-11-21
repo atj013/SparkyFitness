@@ -106,6 +106,7 @@ import {
   setNativeHeaderDatePickerOptions,
   type NativeHeaderDatePickerNavigation,
 } from '../utils/nativeHeaderDatePicker';
+import { useAppFeatureOn } from '../stores/appFeatureTogglesStore';
 
 type DiaryScreenProps = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'Diary'>,
@@ -133,7 +134,9 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ navigation }) => {
   // this phone (#1983) instead of the blocking message.
   const isOffline = !isConnectionLoading && connectionStatus === 'unreachable';
   const { data: familyUsers = [] } = useFamilyUsers({ enabled: isConnected });
-  const hasFamilyDiaries = isConnected && familyUsers.length > 0;
+  const familyDiaryOn = useAppFeatureOn('familyDiary');
+  const hasFamilyDiaries =
+    familyDiaryOn && isConnected && familyUsers.length > 0;
   const selectedDate = useDiaryDateStore((s) => s.selectedDate);
   const offlineDay = useOfflineDiaryDay(selectedDate);
   const waitingSessionIds = useMemo(

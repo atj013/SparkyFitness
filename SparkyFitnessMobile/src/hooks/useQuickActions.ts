@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useAppFeatureOn } from '../stores/appFeatureTogglesStore';
 import { useTranslation } from 'react-i18next';
 import { AppState, Platform } from 'react-native';
 import { ExtensionStorage } from '@bacons/apple-targets';
@@ -26,7 +27,10 @@ type QuickActionId = 'scan-food' | 'search-food' | 'log-water' | 'fasting';
  * Android (targets/android-background-water/res, copied in by
  * plugins/withBackgroundWater.ts).
  */
-export function quickActionItems(): QuickActions.Action[] {
+export function quickActionItems(
+  options: { fastingOn?: boolean } = {}
+): QuickActions.Action[] {
+  const { fastingOn = true } = options;
   const ios = Platform.OS === 'ios';
   const items: QuickActions.Action[] = [
     {
@@ -52,9 +56,13 @@ export function quickActionItems(): QuickActions.Action[] {
   ];
   // Android's "Log water" is a native shortcut that logs without opening the
   // app (targets/android-background-water), so it is not one of these.
+  // Fasting can be hidden in Settings → Features (on this phone).
+  const shown = fastingOn
+    ? items
+    : items.filter((item) => item.id !== 'fasting');
   return Platform.OS === 'android'
-    ? items.filter((item) => item.id !== 'log-water')
-    : items;
+    ? shown.filter((item) => item.id !== 'log-water')
+    : shown;
 }
 
 // Registering the shortcuts replaces every dynamic shortcut on Android, the
@@ -159,11 +167,12 @@ export function useQuickActions(enabled: boolean): void {
   // The titles are read when the items are registered, so a language change
   // has to register them again.
   const language = useTranslation().i18n.language;
+  const fastingOn = useAppFeatureOn('fasting');
   useEffect(() => {
     if (!enabled || (Platform.OS !== 'ios' && Platform.OS !== 'android')) {
       return;
     }
-    const items = quickActionItems();
+    const items = quickActionItems({ fastingOn });
     const registered = QuickActions.setItems(items).catch(() => undefined);
     if (Platform.OS === 'android') {
       void registered.then(restoreLogWaterShortcut);
@@ -184,7 +193,7 @@ export function useQuickActions(enabled: boolean): void {
     }
     const subscription = QuickActions.addListener(run);
     return () => subscription.remove();
-  }, [enabled, language]);
+  }, [enabled, language, fastingOn]);
 }
 
 const CONTROL_ROUTE_KEY = 'pendingControlRoute';

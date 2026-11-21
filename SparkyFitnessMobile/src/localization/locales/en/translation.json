@@ -2911,6 +2911,25 @@
     }
   },
   "featureSettings": {
+    "phone": {
+      "group": "On this phone",
+      "mealPlans": {
+        "title": "Meal plans",
+        "description": "Repeat meals on chosen days. Hides it in the Library."
+      },
+      "fasting": {
+        "title": "Fasting",
+        "description": "The fasting timer. Hides its Dashboard card and app icon shortcut."
+      },
+      "routes": {
+        "title": "Routes",
+        "description": "Saved routes to follow. Hides them in the Library and when recording."
+      },
+      "familyDiary": {
+        "title": "Family diaries",
+        "description": "Viewing and copying to family members. Hides it in Settings and the Diary."
+      }
+    },
     "title": "Features",
     "description": "Turn whole features on or off in this app.",
     "footnote": "Turning a feature off only hides it: nothing is deleted, and syncs and imports keep running.",

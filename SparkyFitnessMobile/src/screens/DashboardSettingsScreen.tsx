@@ -38,6 +38,7 @@ import {
 } from '../services/api/preferencesApi';
 import { useNativeIOSHeadersActive } from '../services/nativeTabBarPreference';
 import { useAppPreferencesStore } from '../stores/appPreferencesStore';
+import { useAppFeatureOn } from '../stores/appFeatureTogglesStore';
 import type { RootStackScreenProps } from '../types/navigation';
 import { resolveDashboardCardOrder } from '../utils/dashboardCardPreferences';
 import { toggleNutrientVisibility } from '../utils/nutrientUtils';
@@ -68,6 +69,7 @@ const DashboardSettingsScreen: React.FC<DashboardSettingsScreenProps> = ({
   const activeWorkoutBarPadding = useActiveWorkoutBarPadding('stack');
   const usesNativeHeader = useNativeIOSHeadersActive();
   const { isEnabled: isFeatureOn } = useMobileFeatures();
+  const fastingOn = useAppFeatureOn('fasting');
   const { discreetMode } = useDiscreetMode();
 
   const calorieRingCardVisible = useAppPreferencesStore(
@@ -490,14 +492,13 @@ const DashboardSettingsScreen: React.FC<DashboardSettingsScreenProps> = ({
                 : DASHBOARD_CARD_TITLES[cardKey](t);
             // A card of a feature turned off stays listed, with its place and
             // switch, and says why the Dashboard leaves it out.
-            const subtitle = isShownByFeature(
-              DASHBOARD_CARD_FEATURES[cardKey],
-              isFeatureOn
-            )
-              ? DASHBOARD_CARD_SUBTITLES[cardKey](t)
-              : t('dashboardSettings.offInFeatures', {
-                  defaultValue: 'Not shown: turned off in Features',
-                });
+            const subtitle =
+              isShownByFeature(DASHBOARD_CARD_FEATURES[cardKey], isFeatureOn) &&
+              (cardKey !== 'fasting' || fastingOn)
+                ? DASHBOARD_CARD_SUBTITLES[cardKey](t)
+                : t('dashboardSettings.offInFeatures', {
+                    defaultValue: 'Not shown: turned off in Features',
+                  });
             return (
               <ReorderSwitchRow
                 key={cardKey}

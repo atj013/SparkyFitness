@@ -47,6 +47,12 @@ describe('quickActionItems', () => {
     expect(titles).toEqual(['Scan food', 'Log food', 'Log water', 'Fasting']);
   });
 
+  it('leaves Fasting out while it is turned off on this phone', () => {
+    setPlatform('ios');
+    const ids = quickActionItems({ fastingOn: false }).map((item) => item.id);
+    expect(ids).toEqual(['scan-food', 'search-food', 'log-water']);
+  });
+
   it('leaves Log water to the native shortcut on Android', () => {
     setPlatform('android');
     expect(quickActionItems()).toEqual([

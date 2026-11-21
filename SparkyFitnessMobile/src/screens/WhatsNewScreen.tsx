@@ -15,6 +15,7 @@ import { useMobileFeatures } from '../hooks/useMobileFeatures';
 import { getTodayDate } from '../utils/dateUtils';
 import { canUseLiquidGlass } from '../utils/liquidGlass';
 import type { RootStackScreenProps } from '../types/navigation';
+import { useAppFeatureOn } from '../stores/appFeatureTogglesStore';
 
 type WhatsNewScreenProps = RootStackScreenProps<'WhatsNew'>;
 
@@ -753,6 +754,7 @@ const WhatsNewScreen: React.FC<WhatsNewScreenProps> = ({ navigation }) => {
   // A feature turned off in Settings → Features keeps its card, without a
   // button to open it.
   const { isEnabled: isFeatureOn } = useMobileFeatures();
+  const routesOn = useAppFeatureOn('routes');
 
   // Added or changed a card below? Bump WHATS_NEW_CONTENT_VERSION in
   // services/whatsNewBanner.ts so the banner re-appears for existing users.
@@ -853,12 +855,16 @@ const WhatsNewScreen: React.FC<WhatsNewScreenProps> = ({ navigation }) => {
           'Draw routes on a satellite map, snap them to roads, generate loops of a set distance, and follow a saved route on your Apple Watch.',
       }),
       hero: <RoutesMockup />,
-      cta: {
-        label: t('whatsNewPage.features.routes.cta', {
-          defaultValue: 'Open routes',
-        }),
-        onPress: () => navigation.navigate('Routes'),
-      },
+      ...(routesOn
+        ? {
+            cta: {
+              label: t('whatsNewPage.features.routes.cta', {
+                defaultValue: 'Open routes',
+              }),
+              onPress: () => navigation.navigate('Routes'),
+            },
+          }
+        : {}),
     },
     {
       eyebrow: t('whatsNewPage.features.checkIn.eyebrow', {

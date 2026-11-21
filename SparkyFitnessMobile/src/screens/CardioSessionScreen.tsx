@@ -31,6 +31,7 @@ import HeartRateZones from '../components/exerciseStats/HeartRateZones';
 import ProgramWorkoutBadge from '../components/recording/ProgramWorkoutBadge';
 import FitnessTestBadge from '../components/recording/FitnessTestBadge';
 import ShoePickerCard from '../components/ShoePickerCard';
+import { useAppFeatureOn } from '../stores/appFeatureTogglesStore';
 import type { RootStackScreenProps } from '../types/navigation';
 import { useEnergyUnit } from '../hooks/useEnergyUnit';
 
@@ -52,6 +53,7 @@ const CardioSessionScreen: React.FC<CardioSessionScreenProps> = ({
 }) => {
   const { session, distanceUnit, diaryEntry } = route.params;
   const { t } = useTranslation();
+  const routesOn = useAppFeatureOn('routes');
   const insets = useSafeAreaInsets();
   const activeWorkoutBarPadding = useActiveWorkoutBarPadding('stack');
 
@@ -239,14 +241,16 @@ const CardioSessionScreen: React.FC<CardioSessionScreenProps> = ({
                     defaultValue: 'Export GPX',
                   })}
                 </Button>
-                <Button
-                  variant="link"
-                  testID="save-as-route"
-                  loading={savingRoute}
-                  onPress={saveAsRoute}
-                >
-                  {t('routes.saveAsRoute', { defaultValue: 'Save as route' })}
-                </Button>
+                {routesOn && (
+                  <Button
+                    variant="link"
+                    testID="save-as-route"
+                    loading={savingRoute}
+                    onPress={saveAsRoute}
+                  >
+                    {t('routes.saveAsRoute', { defaultValue: 'Save as route' })}
+                  </Button>
+                )}
               </>
             ) : (
               <Text className="text-text-secondary text-sm">

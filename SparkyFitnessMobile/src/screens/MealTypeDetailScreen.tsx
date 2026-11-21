@@ -28,6 +28,7 @@ import {
   getHistoricalMealTypeLabel,
   getMealTargetCalories,
 } from '../utils/mealNutrition';
+import { useAppFeatureOn } from '../stores/appFeatureTogglesStore';
 import type { RootStackScreenProps } from '../types/navigation';
 import { getLocalizedMealLabel } from '../constants/meals';
 
@@ -38,6 +39,7 @@ const MealTypeDetailScreen: React.FC<MealTypeDetailScreenProps> = ({
   route,
 }) => {
   const { t, i18n: translationI18n } = useTranslation();
+  const familyDiaryOn = useAppFeatureOn('familyDiary');
   const energyUnit = useEnergyUnit();
   const dateLocale = translationI18n.language.startsWith('pl')
     ? 'pl-PL'
@@ -271,21 +273,25 @@ const MealTypeDetailScreen: React.FC<MealTypeDetailScreenProps> = ({
                       mealTypeName
                     ),
                 },
-                {
-                  label: t('familyDiary.copyToFamily', {
-                    defaultValue: 'Copy to family',
-                  }),
-                  icon: 'people' as const,
-                  sfSymbol: 'person.2',
-                  onPress: () =>
-                    navigation.navigate('FamilyMembers', {
-                      copySource: {
-                        sourceDate: date,
-                        mealTypeId: mealTypeId ?? null,
-                        mealTypeName,
+                ...(familyDiaryOn
+                  ? [
+                      {
+                        label: t('familyDiary.copyToFamily', {
+                          defaultValue: 'Copy to family',
+                        }),
+                        icon: 'people' as const,
+                        sfSymbol: 'person.2',
+                        onPress: () =>
+                          navigation.navigate('FamilyMembers', {
+                            copySource: {
+                              sourceDate: date,
+                              mealTypeId: mealTypeId ?? null,
+                              mealTypeName,
+                            },
+                          }),
                       },
-                    }),
-                },
+                    ]
+                  : []),
               ],
               accessibilityLabel: t('familyDiary.copyMealOptions', {
                 defaultValue: 'Copy meal',

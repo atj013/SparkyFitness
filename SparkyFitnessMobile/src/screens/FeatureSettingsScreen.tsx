@@ -22,6 +22,10 @@ import { useRefetchOnFocus } from '../hooks/useRefetchOnFocus';
 import { useCycleSwitch, useMobileFeatures } from '../hooks/useMobileFeatures';
 import { useNativeIOSHeadersActive } from '../services/nativeTabBarPreference';
 import type { RootStackScreenProps } from '../types/navigation';
+import {
+  useAppFeatureTogglesStore,
+  type AppFeatureToggleKey,
+} from '../stores/appFeatureTogglesStore';
 
 function groupLabel(t: TFunction, group: FeatureGroup): string {
   switch (group) {
@@ -221,6 +225,100 @@ function LabResultsFeatureRows() {
   );
 }
 
+/**
+ * Switches kept on this phone (appFeatureTogglesStore), for features the
+ * server-backed registry does not list. They work with any server version.
+ */
+const PHONE_FEATURE_ROWS: {
+  key: AppFeatureToggleKey;
+  icon: IconName;
+  title: (t: TFunction) => string;
+  description: (t: TFunction) => string;
+}[] = [
+  {
+    key: 'mealPlans',
+    icon: 'calendar',
+    title: (t) =>
+      t('featureSettings.phone.mealPlans.title', {
+        defaultValue: 'Meal plans',
+      }),
+    description: (t) =>
+      t('featureSettings.phone.mealPlans.description', {
+        defaultValue: 'Repeat meals on chosen days. Hides it in the Library.',
+      }),
+  },
+  {
+    key: 'fasting',
+    icon: 'timer',
+    title: (t) =>
+      t('featureSettings.phone.fasting.title', { defaultValue: 'Fasting' }),
+    description: (t) =>
+      t('featureSettings.phone.fasting.description', {
+        defaultValue:
+          'The fasting timer. Hides its Dashboard card and app icon shortcut.',
+      }),
+  },
+  {
+    key: 'routes',
+    icon: 'location',
+    title: (t) =>
+      t('featureSettings.phone.routes.title', { defaultValue: 'Routes' }),
+    description: (t) =>
+      t('featureSettings.phone.routes.description', {
+        defaultValue:
+          'Saved routes to follow. Hides them in the Library and when recording.',
+      }),
+  },
+  {
+    key: 'familyDiary',
+    icon: 'people',
+    title: (t) =>
+      t('featureSettings.phone.familyDiary.title', {
+        defaultValue: 'Family diaries',
+      }),
+    description: (t) =>
+      t('featureSettings.phone.familyDiary.description', {
+        defaultValue:
+          'Viewing and copying to family members. Hides it in Settings and the Diary.',
+      }),
+  },
+];
+
+function PhoneFeatureRows() {
+  const { t } = useTranslation();
+  const off = useAppFeatureTogglesStore((state) => state.off);
+  const setOn = useAppFeatureTogglesStore((state) => state.setOn);
+  return (
+    <SettingsRowGroup
+      title={t('featureSettings.phone.group', {
+        defaultValue: 'On this phone',
+      })}
+    >
+      {PHONE_FEATURE_ROWS.map((row) => {
+        const title = row.title(t);
+        return (
+          <SettingsRow
+            key={row.key}
+            icon={row.icon}
+            title={title}
+            subtitle={row.description(t)}
+            subtitleNumberOfLines={0}
+            testID={`phone-feature-row-${row.key}`}
+            rightAccessory={
+              <Switch
+                accessibilityLabel={title}
+                value={!off[row.key]}
+                onValueChange={(on) => setOn(row.key, on)}
+                testID={`phone-feature-switch-${row.key}`}
+              />
+            }
+          />
+        );
+      })}
+    </SettingsRowGroup>
+  );
+}
+
 /** One row per feature. A new registry key needs its own rows here. */
 function FeatureRows({ feature }: { feature: FeatureKey }) {
   switch (feature) {
@@ -277,6 +375,7 @@ export default function FeatureSettingsScreen(
             </SettingsRowGroup>
           );
         })}
+        <PhoneFeatureRows />
         <Text className="text-text-secondary text-sm">
           {t('featureSettings.footnote', {
             defaultValue:

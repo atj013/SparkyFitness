@@ -6,6 +6,7 @@ import React, {
   useState,
 } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useAppFeatureOn } from '../stores/appFeatureTogglesStore';
 import type { TFunction } from 'i18next';
 import {
   Alert,
@@ -273,6 +274,7 @@ function recordingTitle(
 
 const RecordActivityScreen: React.FC<Props> = ({ navigation, route }) => {
   const { t } = useTranslation();
+  const routesOn = useAppFeatureOn('routes');
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const { updateMutation: updateShoe } = useShoeMutations();
@@ -1424,7 +1426,7 @@ const RecordActivityScreen: React.FC<Props> = ({ navigation, route }) => {
               />
             </View>
           ) : null}
-          {routeChoiceShown && savedRoutes.length > 0 ? (
+          {routesOn && routeChoiceShown && savedRoutes.length > 0 ? (
             <View className="bg-surface rounded-xl p-4 mt-4">
               <Text className="text-text-primary text-sm font-semibold mb-1">
                 {t('recordActivity.route.title', { defaultValue: 'Route' })}

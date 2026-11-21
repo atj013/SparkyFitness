@@ -42,6 +42,7 @@ import { useNfcSupport } from '../hooks/useNfcSupport';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList, TabParamList } from '../types/navigation';
+import { useAppFeatureOn } from '../stores/appFeatureTogglesStore';
 
 type SettingsScreenProps = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'Settings'>,
@@ -50,6 +51,7 @@ type SettingsScreenProps = CompositeScreenProps<
 
 const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
   const { t, i18n: translationI18n } = useTranslation();
+  const familyDiaryOn = useAppFeatureOn('familyDiary');
   const dateLocale = translationI18n.language.startsWith('pl')
     ? 'pl-PL'
     : 'en-US';
@@ -272,7 +274,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
                 onPress={() => navigation.navigate('AppSettings')}
                 iconColor={catViolet}
               />
-              {isConnected && (
+              {isConnected && familyDiaryOn && (
                 <SettingsRow
                   icon="people"
                   title={t('familyDiary.title', {

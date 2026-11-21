@@ -6,6 +6,7 @@ import type { FeatureKey } from '@workspace/shared';
 import type { CycleSwitchState } from '../../src/hooks/useMobileFeatures';
 import type { FeatureChoiceState } from '../../src/hooks/useFeatureChoices';
 import { initializeI18n } from '../../src/localization/i18n';
+import { useAppFeatureTogglesStore } from '../../src/stores/appFeatureTogglesStore';
 
 const mockRefetchOnFocus = jest.fn();
 jest.mock('../../src/hooks/useRefetchOnFocus', () => ({
@@ -106,6 +107,42 @@ describe('FeatureSettingsScreen', () => {
     expect(
       screen.getByText(/One switch for the app and the website\./)
     ).toBeTruthy();
+  });
+
+  describe('On this phone', () => {
+    beforeEach(() => {
+      useAppFeatureTogglesStore.setState({ off: {} });
+    });
+
+    it('lists meal plans, fasting, routes and family diaries, on by default', () => {
+      renderScreen();
+      expect(screen.getByText('On this phone')).toBeTruthy();
+      for (const key of ['mealPlans', 'fasting', 'routes', 'familyDiary']) {
+        expect(
+          screen.getByTestId(`phone-feature-switch-${key}`).props.value
+        ).toBe(true);
+      }
+    });
+
+    it('turns a feature off and back on, on this phone only', () => {
+      renderScreen();
+      fireEvent(
+        screen.getByTestId('phone-feature-switch-fasting'),
+        'valueChange',
+        false
+      );
+      expect(useAppFeatureTogglesStore.getState().off).toEqual({
+        fasting: true,
+      });
+      expect(mockSetOn).not.toHaveBeenCalled();
+
+      fireEvent(
+        screen.getByTestId('phone-feature-switch-fasting'),
+        'valueChange',
+        true
+      );
+      expect(useAppFeatureTogglesStore.getState().off).toEqual({});
+    });
   });
 
   it('turns cycle on', () => {

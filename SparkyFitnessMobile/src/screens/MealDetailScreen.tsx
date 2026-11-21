@@ -45,6 +45,7 @@ import {
   draftToMealFood,
   ingredientScale,
 } from '../utils/mealNutrition';
+import { useAppFeatureOn } from '../stores/appFeatureTogglesStore';
 export type { MealFoodNumericField } from '../utils/mealNutrition';
 
 type MealDetailScreenProps = RootStackScreenProps<'MealDetail'>;
@@ -68,6 +69,7 @@ const MealDetailScreen: React.FC<MealDetailScreenProps> = ({
   route,
 }) => {
   const { t } = useTranslation();
+  const mealPlansOn = useAppFeatureOn('mealPlans');
   const recipeScope = useRecipeImportAccess();
   const energyUnit = useEnergyUnit();
   const { mealId, initialMeal } = route.params;
@@ -544,15 +546,17 @@ const MealDetailScreen: React.FC<MealDetailScreenProps> = ({
           </Text>
         </Button>
 
-        <Button
-          variant="secondary"
-          textClassName="text-text-primary"
-          onPress={() =>
-            navigation.navigate('MealPlanForm', { initialMeal: meal })
-          }
-        >
-          {t('mealDetail.planMeal', { defaultValue: 'Plan Meal' })}
-        </Button>
+        {mealPlansOn && (
+          <Button
+            variant="secondary"
+            textClassName="text-text-primary"
+            onPress={() =>
+              navigation.navigate('MealPlanForm', { initialMeal: meal })
+            }
+          >
+            {t('mealDetail.planMeal', { defaultValue: 'Plan Meal' })}
+          </Button>
+        )}
 
         {canManageMeal && recipeScope ? (
           <RecipeImportSourcePanel

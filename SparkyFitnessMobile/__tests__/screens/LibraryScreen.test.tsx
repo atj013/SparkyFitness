@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { act, render, fireEvent, waitFor } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import LibraryScreen from '../../src/screens/LibraryScreen';
@@ -13,6 +13,7 @@ import {
 import { fetchExercisesCount } from '../../src/services/api/exerciseApi';
 import { fetchFoodsPage } from '../../src/services/api/foodsApi';
 import { fetchWorkoutPresetsPage } from '../../src/services/api/workoutPresetsApi';
+import { useAppFeatureTogglesStore } from '../../src/stores/appFeatureTogglesStore';
 
 jest.mock('../../src/hooks', () => ({
   useFoods: jest.fn(),
@@ -262,6 +263,24 @@ describe('LibraryScreen', () => {
     const screen = renderScreen();
     fireEvent.press(screen.getByText('Routes'));
     expect(navigation.navigate).toHaveBeenCalledWith('Routes');
+  });
+
+  describe('features hidden on this phone', () => {
+    afterEach(() => {
+      act(() => {
+        useAppFeatureTogglesStore.setState({ off: {} });
+      });
+    });
+
+    it('hides the Meal plans and Routes rows while they are off', () => {
+      useAppFeatureTogglesStore.setState({
+        off: { mealPlans: true, routes: true },
+      });
+      const screen = renderScreen();
+      expect(screen.queryByText('Meal plans')).toBeNull();
+      expect(screen.queryByText('Routes')).toBeNull();
+      expect(screen.getByText('Meals')).toBeTruthy();
+    });
   });
 
   it('navigates to LabResults when the Lab results row is pressed', () => {

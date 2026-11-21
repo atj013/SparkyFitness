@@ -1,4 +1,5 @@
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import { useAppFeatureOn } from '../stores/appFeatureTogglesStore';
 import type { CompositeScreenProps } from '@react-navigation/native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -454,12 +455,15 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
   } = useMindfulnessMutations(selectedDate);
 
   const { isEnabled: isFeatureOn } = useMobileFeatures();
+  const fastingOn = useAppFeatureOn('fasting');
   const orderedDashboardCards = useMemo(
     () =>
-      resolveDashboardCardOrder(dashboardCardOrder).filter((cardKey) =>
-        isShownByFeature(DASHBOARD_CARD_FEATURES[cardKey], isFeatureOn)
+      resolveDashboardCardOrder(dashboardCardOrder).filter(
+        (cardKey) =>
+          isShownByFeature(DASHBOARD_CARD_FEATURES[cardKey], isFeatureOn) &&
+          (cardKey !== 'fasting' || fastingOn)
       ),
-    [dashboardCardOrder, isFeatureOn]
+    [dashboardCardOrder, isFeatureOn, fastingOn]
   );
 
   useLayoutEffect(() => {
