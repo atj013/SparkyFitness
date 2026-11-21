@@ -93,7 +93,11 @@ export function getFoodEntryMealTypeLabel(
 
 export function groupFoodEntriesByMealType(
   entries: FoodEntry[],
-  mealTypes: MealType[]
+  mealTypes: MealType[],
+  options?: {
+    /** Also return a group, with no entries, for every meal type passed in. */
+    includeEmpty?: boolean;
+  }
 ): MealGroup[] {
   const typeMap = new Map<string, MealType>();
   for (const mt of mealTypes) {
@@ -157,12 +161,12 @@ export function groupFoodEntriesByMealType(
   const result: MealGroup[] = [];
   for (const mt of mealTypes) {
     const group = groupMap.get(mt.id);
-    if (group) {
+    if (group || options?.includeEmpty) {
       result.push({
         mealTypeId: mt.id,
         name: mt.name,
         sortOrder: mt.sort_order ?? 999,
-        entries: group.entries,
+        entries: group?.entries ?? [],
         isSystem: mt.user_id === null,
       });
     }

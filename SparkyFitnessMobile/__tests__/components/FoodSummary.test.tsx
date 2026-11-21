@@ -230,4 +230,59 @@ describe('FoodSummary', () => {
     );
     expect(queryByText(/\/ 500/)).toBeNull();
   });
+
+  describe('with per-meal add buttons', () => {
+    const twoMeals = mealTypes.slice(0, 2); // system breakfast + lunch
+
+    it('shows every meal type as a section even on a day with no entries', () => {
+      const view = render(
+        <FoodSummary
+          foodEntries={[]}
+          mealTypes={twoMeals}
+          onAddFoodToMeal={jest.fn()}
+        />
+      );
+      expect(view.getByText('Breakfast')).toBeTruthy();
+      expect(view.getByText('Lunch')).toBeTruthy();
+      expect(view.getAllByText('Nothing logged yet')).toHaveLength(2);
+      expect(view.queryByText('Tap to add food')).toBeNull();
+    });
+
+    it('keeps empty meals next to meals that have entries', () => {
+      const view = render(
+        <FoodSummary
+          foodEntries={[entry('1', 'sys-l', 'lunch')]}
+          mealTypes={twoMeals}
+          onAddFoodToMeal={jest.fn()}
+        />
+      );
+      expect(view.getByText('Breakfast')).toBeTruthy();
+      expect(view.getAllByText('Nothing logged yet')).toHaveLength(1);
+      expect(view.getAllByTestId('food-row')).toHaveLength(1);
+    });
+
+    it('calls onAddFoodToMeal with the meal type id when + is pressed', () => {
+      const onAddFoodToMeal = jest.fn();
+      const view = render(
+        <FoodSummary
+          foodEntries={[]}
+          mealTypes={twoMeals}
+          onAddFoodToMeal={onAddFoodToMeal}
+        />
+      );
+      fireEvent.press(view.getByTestId('meal-add-sys-l'));
+      expect(onAddFoodToMeal).toHaveBeenCalledWith('sys-l');
+    });
+
+    it('without the callback, empty meals stay hidden and there is no + button', () => {
+      const view = render(
+        <FoodSummary
+          foodEntries={[entry('1', 'sys-l', 'lunch')]}
+          mealTypes={twoMeals}
+        />
+      );
+      expect(view.queryByText('Breakfast')).toBeNull();
+      expect(view.queryByTestId('meal-add-sys-l')).toBeNull();
+    });
+  });
 });

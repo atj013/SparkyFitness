@@ -2789,6 +2789,8 @@
   },
   "foodSummary": {
     "tapToAddFood": "Tap to add food",
+    "addFoodToMeal": "Add food to {{label}}",
+    "noFoodLogged": "Nothing logged yet",
     "caloriesShort": "kcal",
     "nutritionBreakdown": "{{label}} nutrition breakdown"
   },

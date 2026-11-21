@@ -25,6 +25,11 @@ interface FoodSummaryProps {
   goals?: DailyGoals;
   calorieGoal?: number;
   onAddFood?: () => void;
+  /**
+   * When set, every meal type gets a section (even with nothing logged) and a
+   * "+" button that calls this with the section's meal type id.
+   */
+  onAddFoodToMeal?: (mealTypeId: string) => void;
   onAdjustServing?: (entry: FoodEntry) => void;
   onPressMealType?: (
     mealTypeId: string | null,
@@ -37,6 +42,7 @@ interface MealSectionProps {
   group: MealGroup;
   goals?: DailyGoals;
   calorieGoal?: number;
+  onAddFoodToMeal?: (mealTypeId: string) => void;
   onAdjustServing?: (entry: FoodEntry) => void;
   onPressMealType?: (
     mealTypeId: string | null,
@@ -67,6 +73,7 @@ const MealSection: React.FC<MealSectionProps> = ({
   group,
   goals,
   calorieGoal,
+  onAddFoodToMeal,
   onAdjustServing,
   onPressMealType,
 }) => {
@@ -112,26 +119,54 @@ const MealSection: React.FC<MealSectionProps> = ({
     </>
   );
 
+  const isEmpty = group.entries.length === 0;
+  const mealTypeId = group.mealTypeId;
+  const headerSpacing = isEmpty ? 'mb-1' : 'mb-3';
+
   return (
     <View className="bg-surface rounded-xl p-4 overflow-hidden shadow-sm">
-      {onPressMealType ? (
-        <Pressable
-          onPress={() =>
-            onPressMealType(group.mealTypeId, group.name, group.entries)
-          }
-          className="flex-row gap-2 mb-3 items-center"
-          accessibilityRole="button"
-          accessibilityLabel={t('foodSummary.nutritionBreakdown', {
-            defaultValue: '{{label}} nutrition breakdown',
-            label,
+      <View className={`flex-row items-center gap-2 ${headerSpacing}`}>
+        {onPressMealType ? (
+          <Pressable
+            onPress={() =>
+              onPressMealType(group.mealTypeId, group.name, group.entries)
+            }
+            className="flex-row gap-2 items-center flex-1"
+            accessibilityRole="button"
+            accessibilityLabel={t('foodSummary.nutritionBreakdown', {
+              defaultValue: '{{label}} nutrition breakdown',
+              label,
+            })}
+          >
+            {headerContent}
+          </Pressable>
+        ) : (
+          <View className="flex-row gap-2 items-center flex-1">
+            {headerContent}
+          </View>
+        )}
+        {onAddFoodToMeal && mealTypeId && (
+          <Pressable
+            onPress={() => onAddFoodToMeal(mealTypeId)}
+            hitSlop={8}
+            className="w-8 h-8 rounded-full bg-accent-primary/10 items-center justify-center"
+            accessibilityRole="button"
+            accessibilityLabel={t('foodSummary.addFoodToMeal', {
+              defaultValue: 'Add food to {{label}}',
+              label,
+            })}
+            testID={`meal-add-${mealTypeId}`}
+          >
+            <Icon name="add" size={20} color={accentPrimary} />
+          </Pressable>
+        )}
+      </View>
+      {isEmpty && (
+        <Text className="text-sm text-text-muted">
+          {t('foodSummary.noFoodLogged', {
+            defaultValue: 'Nothing logged yet',
           })}
-        >
-          {headerContent}
-        </Pressable>
-      ) : (
-        <View className="flex-row gap-2 mb-3 items-center">
-          {headerContent}
-        </View>
+        </Text>
       )}
       {group.entries.map((entry, index) => {
         const nutrition = calculateEntryNutrition(entry);
@@ -154,16 +189,21 @@ const FoodSummary: React.FC<FoodSummaryProps> = ({
   goals,
   calorieGoal,
   onAddFood,
+  onAddFoodToMeal,
   onAdjustServing,
   onPressMealType,
 }) => {
-  if (foodEntries.length === 0) {
+  // With per-meal add buttons, every meal type keeps its section so there is
+  // always somewhere to tap; otherwise only meals with entries are shown.
+  const showEmptyMeals = !!onAddFoodToMeal && mealTypes.length > 0;
+
+  if (foodEntries.length === 0 && !showEmptyMeals) {
     return <EmptyState onAddFood={onAddFood} />;
   }
 
-  // groupFoodEntriesByMealType only creates groups that have entries, so the
-  // previous visibleGroups re-filter was redundant.
-  const groups = groupFoodEntriesByMealType(foodEntries, mealTypes);
+  const groups = groupFoodEntriesByMealType(foodEntries, mealTypes, {
+    includeEmpty: showEmptyMeals,
+  });
 
   if (groups.length === 0) {
     return <EmptyState onAddFood={onAddFood} />;
@@ -181,6 +221,7 @@ const FoodSummary: React.FC<FoodSummaryProps> = ({
           group={group}
           goals={goals}
           calorieGoal={calorieGoal}
+          onAddFoodToMeal={onAddFoodToMeal}
           onAdjustServing={onAdjustServing}
           onPressMealType={onPressMealType}
         />

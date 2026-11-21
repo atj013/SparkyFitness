@@ -89,6 +89,25 @@ const customMealTypes: MealType[] = [
 ];
 
 describe('groupFoodEntriesByMealType', () => {
+  it('includeEmpty returns a group for every meal type, in sort order', () => {
+    const entries: FoodEntry[] = [
+      { id: '1', meal_type_id: 'sys-l', meal_type: 'lunch' } as FoodEntry,
+    ];
+    const groups = groupFoodEntriesByMealType(entries, customMealTypes, {
+      includeEmpty: true,
+    });
+    expect(groups).toHaveLength(customMealTypes.length);
+    const lunch = groups.find((g) => g.mealTypeId === 'sys-l');
+    expect(lunch?.entries).toHaveLength(1);
+    expect(
+      groups
+        .filter((g) => g.mealTypeId !== 'sys-l')
+        .every((g) => g.entries.length === 0)
+    ).toBe(true);
+    const orders = groups.map((g) => g.sortOrder);
+    expect(orders).toEqual([...orders].sort((a, b) => a - b));
+  });
+
   it('groups entries by meal_type_id and uses server sort_order', () => {
     const entries: FoodEntry[] = [
       {

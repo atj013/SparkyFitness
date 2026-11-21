@@ -779,7 +779,9 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ navigation }) => {
             customNutrients={customNutrients}
           />
         )}
-        {isDayEmpty ? (
+        {/* With meal types loaded, an empty day still shows each meal with its
+            own add button instead of the empty-day illustration. */}
+        {isDayEmpty && mealTypes.length === 0 ? (
           <>
             <EmptyDayIllustration />
             <Button
@@ -806,6 +808,12 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ navigation }) => {
               calorieGoal={summary.calorieGoal}
               onAddFood={() =>
                 navigation.navigate('FoodSearch', { date: selectedDate })
+              }
+              onAddFoodToMeal={(mealTypeId) =>
+                navigation.navigate('FoodSearch', {
+                  date: selectedDate,
+                  mealTypeId,
+                })
               }
               onAdjustServing={(entry) =>
                 servingSheetRef.current?.present(entry)
