@@ -241,38 +241,37 @@ export function describeRejectedParam(
   return named || null;
 }
 
-// Claude's hosted web search: every current Claude model has it, and Claude
-// 4.6 and later also take the dynamic-filtering version (web_search_20260209),
-// which filters results before they reach the context. Haiku 5.5 is not named
-// for that version in Anthropic's docs, so it and the other older models get
-// the basic one. Unknown or retired ids (claude-3-*) get none rather than a
-// request the API would reject.
-const ANTHROPIC_DYNAMIC_WEB_SEARCH_MODELS =
+// Claude's hosted web search and web fetch: every current Claude model has
+// them, and Claude 4.6 and later also take the dynamic-filtering versions
+// (web_search_20260209 / web_fetch_20260209), which filter results before
+// they reach the context. Haiku 5.5 is not named for those versions in
+// Anthropic's docs, so it and the other older models get the basic ones
+// (web_search_20250305 / web_fetch_20250910). Unknown or retired ids
+// (claude-3-*) get none rather than a request the API would reject.
+const ANTHROPIC_DYNAMIC_WEB_TOOL_MODELS =
   /^claude-(fable-5|mythos-5|mythos-preview|opus-(5|4-8|4-7|4-6)|sonnet-(5|4-6))/;
-const ANTHROPIC_BASIC_WEB_SEARCH_MODELS =
+const ANTHROPIC_BASIC_WEB_TOOL_MODELS =
   /^claude-(haiku-(5-5|4-5)|opus-4-5|sonnet-4-5)/;
 
-export type AnthropicWebSearchVersion =
-  'web_search_20260209' | 'web_search_20250305';
+export type AnthropicWebToolVersion = 'dynamic' | 'basic';
 
 /**
- * Which version of Claude's hosted web search tool a model takes, or null when
- * the model is not known to support it.
+ * Which versions of Claude's hosted web search and web fetch tools a model
+ * takes, or null when the model is not known to support them.
  */
-export function anthropicWebSearchVersion(
+export function anthropicWebToolVersion(
   model: string
-): AnthropicWebSearchVersion | null {
+): AnthropicWebToolVersion | null {
   const id = model.trim().toLowerCase();
-  if (ANTHROPIC_DYNAMIC_WEB_SEARCH_MODELS.test(id))
-    return 'web_search_20260209';
-  if (ANTHROPIC_BASIC_WEB_SEARCH_MODELS.test(id)) return 'web_search_20250305';
+  if (ANTHROPIC_DYNAMIC_WEB_TOOL_MODELS.test(id)) return 'dynamic';
+  if (ANTHROPIC_BASIC_WEB_TOOL_MODELS.test(id)) return 'basic';
   return null;
 }
 
 export default {
   DROPPABLE_PARAMS,
   supportsTemperature,
-  anthropicWebSearchVersion,
+  anthropicWebToolVersion,
   recordRejectedParam,
   isParamRejected,
   resetLearnedRejections,

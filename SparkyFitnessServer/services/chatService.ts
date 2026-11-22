@@ -15,7 +15,7 @@ import {
   type ProviderConfig,
 } from '../ai/providerDispatch.js';
 import {
-  anthropicWebSearchVersion,
+  anthropicWebToolVersion,
   detectRejectedParam,
   recordRejectedParam,
   supportsTemperature,
@@ -545,7 +545,7 @@ async function prepareChatContext(
   serviceSystemPrompt?: string | null,
   latestImageDataUrl?: string | null,
   serviceConfigId?: string | null,
-  foodResearchTool?: Tool,
+  foodResearchTools?: Record<string, Tool>,
   latestUserText?: string,
   // Auto mode only: tools held back from this turn's base selection (see
   // ON_DEMAND_TOOLS). Escalating their category still brings them in.
@@ -611,7 +611,7 @@ async function prepareChatContext(
     foodPhotoEstimateSink,
     latestImageDataUrl,
     serviceConfigId,
-    foodResearchTool,
+    foodResearchTools,
     latestUserText,
   };
 
@@ -869,31 +869,50 @@ const RETENTION_24H_MODEL_PREFIXES = [
 // which older compatible gateways may not recognize as system instructions.
 // Anthropic gets top-level automatic caching (see buildChatSystem); Gemini
 // auto-caches.
-// Up to this many searches per chat turn, so one food question cannot run up
-// Anthropic's per-search fee.
-const CLAUDE_WEB_SEARCH_MAX_USES = 5;
+// Per request, enough to research a whole meal (a few searches per item to
+// cross-check sources) while bounding Anthropic's per-search fee.
+const CLAUDE_WEB_SEARCH_MAX_USES = 15;
+// Web fetch reads a page the search found (a chain's nutrition page or PDF).
+// It has no per-use fee, but a page's text is billed as input, so the number
+// of pages and the text kept from each are capped.
+const CLAUDE_WEB_FETCH_MAX_USES = 5;
+const CLAUDE_WEB_FETCH_MAX_CONTENT_TOKENS = 15000;
 
-export function buildFoodResearchTool(
+/**
+ * Provider-executed web research for food lookups, keyed by the tool names the
+ * chat registers (`web_search`, `web_fetch`); undefined when the service or
+ * model has none.
+ */
+export function buildFoodResearchTools(
   serviceType: string,
   modelName: string,
   apiKey?: string | null
-) {
+): Record<string, Tool> | undefined {
   if (serviceType === 'openai' && isGpt6Model(modelName)) {
-    return createOpenAI({ apiKey: apiKey ?? undefined }).tools.webSearch({
-      searchContextSize: 'high',
-    });
+    return {
+      web_search: createOpenAI({ apiKey: apiKey ?? undefined }).tools.webSearch(
+        { searchContextSize: 'high' }
+      ),
+    };
   }
   if (serviceType === 'anthropic') {
-    const version = anthropicWebSearchVersion(modelName);
+    const version = anthropicWebToolVersion(modelName);
     if (!version) return undefined;
     const anthropic = createAnthropic({ apiKey: apiKey ?? undefined });
-    return version === 'web_search_20260209'
-      ? anthropic.tools.webSearch_20260209({
-          maxUses: CLAUDE_WEB_SEARCH_MAX_USES,
-        })
-      : anthropic.tools.webSearch_20250305({
-          maxUses: CLAUDE_WEB_SEARCH_MAX_USES,
-        });
+    const search = { maxUses: CLAUDE_WEB_SEARCH_MAX_USES };
+    const fetch = {
+      maxUses: CLAUDE_WEB_FETCH_MAX_USES,
+      maxContentTokens: CLAUDE_WEB_FETCH_MAX_CONTENT_TOKENS,
+    };
+    return version === 'dynamic'
+      ? {
+          web_search: anthropic.tools.webSearch_20260209(search),
+          web_fetch: anthropic.tools.webFetch_20260209(fetch),
+        }
+      : {
+          web_search: anthropic.tools.webSearch_20250305(search),
+          web_fetch: anthropic.tools.webFetch_20250910(fetch),
+        };
   }
   return undefined;
 }
@@ -2297,7 +2316,7 @@ async function processChatMessage(
       aiService.system_prompt,
       latestImageDataUrl,
       aiService.id,
-      buildFoodResearchTool(
+      buildFoodResearchTools(
         aiService.service_type,
         modelName,
         aiService.api_key
@@ -2930,7 +2949,7 @@ async function processChatMessageStream(
       aiService.system_prompt,
       latestImageDataUrl,
       aiService.id,
-      buildFoodResearchTool(
+      buildFoodResearchTools(
         aiService.service_type,
         modelName,
         aiService.api_key
