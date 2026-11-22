@@ -1,5 +1,16 @@
 See @AGENTS.md
 
+## This fork (atj013/sparkyfitness)
+
+`origin` is the maintainer's fork; `upstream` is `CodeWithCJ/SparkyFitness`.
+
+- `main`: an untouched copy of upstream `main`. Sync it with `gh repo sync atj013/sparkyfitness --branch main --source CodeWithCJ/SparkyFitness`; never commit to it.
+- `diary-meal-sections`: the fork's app work (the phone app, and server changes that are also kept here). To take upstream changes, `git fetch upstream` and merge `upstream/main` into it, resolve conflicts, run the checks of every package the merge touched, then push.
+- `fork-server`: what the maintainer's server runs. It is the upstream **release tag** their server was on (currently `v1.12.1`) plus only the fork's server commits, cherry-picked. Never merge `main` or the app branch into it: upstream `main` carries database migrations the release does not have, and running them would make the database newer than the official images. Every push builds `ghcr.io/atj013/sparkyfitness_server:fork` and `:fork-<sha>` (`.github/workflows/fork-server-image.yml`, on that branch only).
+- A server change: commit it on `diary-meal-sections`, cherry-pick it onto `fork-server`, run the server tests there, push both. Then the maintainer runs `docker compose pull` and `docker compose up -d`.
+- A new upstream release: ask before moving `fork-server` to it (`git rebase --onto <new tag> <old tag> fork-server`, force-push). Moving it runs that release's migrations on the maintainer's database; they back the database up first. Their web app stays on the official `codewithcj/sparkyfitness` image at the same release.
+- Pushing these branches and syncing `main` is part of this flow; sending anything to upstream (pull requests, issues, comments) needs the maintainer's say-so each time.
+
 ## Android APK releases (atj013/sparkyfitness)
 
 Every time an Android APK is built for the maintainer's phone, publish it as a GitHub release on `atj013/sparkyfitness`. This is standing approval for that flow: commit the work being shipped, push its branch, tag, and release. Commit messages still follow the AGENTS.md rules (no AI attribution). Ask first only when the work in the tree is not what the APK contains.
