@@ -195,6 +195,26 @@ describe('selectDisplayVariant', () => {
     expect(result.orderedVariants).toEqual([slices, dv]);
   });
 
+  it('opens on the medium size when USDA lists several household sizes', () => {
+    // USDA's banana lists "cup, mashed" before the small/medium/large sizes.
+    const dv = makeDisplayVariant(100, 'g');
+    const mashed = makeDisplayVariant(1, 'cup, mashed', '1 cup, mashed');
+    const small = makeDisplayVariant(1, 'small (6" to 6-7/8" long)');
+    const medium = makeDisplayVariant(1, 'medium (7" to 7-7/8" long)');
+    const large = makeDisplayVariant(1, 'large (8" to 8-7/8" long)');
+    const result = selectDisplayVariant(dv, [dv, mashed, small, medium, large]);
+    expect(result.displayVariant).toBe(medium);
+    expect(result.orderedVariants).toEqual([medium, dv, mashed, small, large]);
+  });
+
+  it('falls back to the first named size when none is medium', () => {
+    const dv = makeDisplayVariant(100, 'g');
+    const mashed = makeDisplayVariant(1, 'cup, mashed', '1 cup, mashed');
+    const small = makeDisplayVariant(1, 'small');
+    const result = selectDisplayVariant(dv, [dv, mashed, small]);
+    expect(result.displayVariant).toBe(mashed);
+  });
+
   it('keeps a gram default when the provider has no named serving', () => {
     const dv = makeDisplayVariant(68, 'g');
     const result = selectDisplayVariant(dv, [dv]);

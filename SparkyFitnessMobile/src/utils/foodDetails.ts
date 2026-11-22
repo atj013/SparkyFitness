@@ -364,6 +364,7 @@ export function selectDisplayVariant<
   T extends {
     serving_size: number;
     serving_unit: string;
+    serving_description?: string | null;
   },
 >(
   defaultVariant: T,
@@ -383,8 +384,18 @@ export function selectDisplayVariant<
   // A named serving ("2 slices", "1 bottle") wins over any gram/ml default,
   // not only the 100 g/100 ml reference: Open Food Facts sends its declared
   // weight (e.g. 68 g) as the default with the household serving beside it.
+  // Among the named servings, a "medium" one (a medium banana, apple or egg)
+  // is the everyday size, so it opens on that rather than on whichever USDA
+  // lists first (often "1 cup, mashed").
+  const isNamed = (variant: T) => !isMeasureUnit(variant.serving_unit);
   const namedVariant = isMeasureUnit(defaultVariant.serving_unit)
-    ? variants.find((variant) => !isMeasureUnit(variant.serving_unit))
+    ? (variants.find(
+        (variant) =>
+          isNamed(variant) &&
+          MEDIUM_SERVING_PATTERN.test(
+            `${variant.serving_unit} ${variant.serving_description ?? ''}`
+          )
+      ) ?? variants.find(isNamed))
     : undefined;
 
   const displayVariant = requestedVariant ?? namedVariant ?? defaultVariant;
@@ -405,6 +416,8 @@ export function formatServingUnit(unit: string | undefined | null): string {
   if (!unit) return '';
   return /[._]/.test(unit) ? formatServingDescription(unit) : unit;
 }
+
+const MEDIUM_SERVING_PATTERN = /\bmedium\b/i;
 
 /** A plain weight or volume (g, kg, ml, l) rather than a named serving. */
 function isMeasureUnit(unit: string | undefined | null): boolean {

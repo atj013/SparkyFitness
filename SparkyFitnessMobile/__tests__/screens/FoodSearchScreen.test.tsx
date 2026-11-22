@@ -1141,6 +1141,33 @@ describe('FoodSearchScreen', () => {
     );
   });
   it('forwards the tapped row serving to the detail fetch so the preview keeps it', async () => {
+    const sliceItem = {
+      ...externalItem,
+      serving_size: 28,
+      serving_unit: 'g',
+      serving_description: '1 slice (28 g)',
+    };
+    mockUseExternalProviders.mockReturnValue(fatSecretProvider);
+    mockUseExternalFoodSearch.mockReturnValue(
+      activeExternalSearch({ searchResults: [sliceItem] })
+    );
+    mockFetchExternalFoodDetails.mockResolvedValue(sliceItem);
+
+    const screen = renderSearching();
+
+    fireEvent.press(screen.getByText('Cheddar Cheese'));
+
+    await waitFor(() => {
+      expect(mockFetchExternalFoodDetails).toHaveBeenCalledWith(
+        'fatsecret',
+        'ext-1',
+        'p1',
+        expect.objectContaining({ serving_size: 28, serving_unit: 'g' })
+      );
+    });
+  });
+
+  it('lets a named serving replace a bare 100 g row serving in the detail', async () => {
     mockUseExternalProviders.mockReturnValue(fatSecretProvider);
     mockUseExternalFoodSearch.mockReturnValue(
       activeExternalSearch({ searchResults: [externalItem] })
@@ -1156,7 +1183,40 @@ describe('FoodSearchScreen', () => {
         'fatsecret',
         'ext-1',
         'p1',
-        expect.objectContaining({ serving_size: 100, serving_unit: 'g' })
+        undefined
+      );
+    });
+  });
+
+  it('fetches USDA details so household sizes like "1 small" load', async () => {
+    const banana = {
+      ...externalItem,
+      id: '173944',
+      name: 'Bananas, Raw',
+      brand: null,
+      source: 'usda',
+    };
+    mockUseExternalProviders.mockReturnValue({
+      ...fatSecretProvider,
+      providers: [
+        { id: 'p-usda', provider_type: 'usda', provider_name: 'USDA' },
+      ],
+    });
+    mockUseExternalFoodSearch.mockReturnValue(
+      activeExternalSearch({ searchResults: [banana] })
+    );
+    mockFetchExternalFoodDetails.mockResolvedValue(banana);
+
+    const screen = renderSearching();
+
+    fireEvent.press(screen.getByText('Bananas, Raw'));
+
+    await waitFor(() => {
+      expect(mockFetchExternalFoodDetails).toHaveBeenCalledWith(
+        'usda',
+        '173944',
+        'p-usda',
+        undefined
       );
     });
   });

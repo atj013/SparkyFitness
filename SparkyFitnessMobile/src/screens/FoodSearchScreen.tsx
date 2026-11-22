@@ -62,6 +62,11 @@ import {
 import { useAppPreferencesStore } from '../stores/appPreferencesStore';
 import Toast from 'react-native-toast-message';
 import { fetchExternalFoodDetails } from '../services/api/externalFoodSearchApi';
+import {
+  foodProviderNeedsDetailFetch,
+  isPublicFoodProvider,
+} from '@workspace/shared';
+import { isReferenceServing } from '../utils/foodDetails';
 import { getApiErrorMessage } from '../services/api/errors';
 import { FoodItem } from '../types/foods';
 import { ExternalFoodItem } from '../types/externalFoods';
@@ -761,25 +766,30 @@ const FoodSearchScreen: React.FC<FoodSearchScreenProps> = ({
               recipeImportScope: ownerScope ?? undefined,
             }
           : externalFoodItemToFoodInfo(value);
-      if (
-        (item.source === 'fatsecret' ||
-          item.source === 'yazio' ||
-          recipeImportTarget) &&
-        providerId
-      ) {
+      // Search rows carry partial data for these providers (USDA's household
+      // sizes such as "1 small banana" only come with the details), so the
+      // full food is fetched first, as the web food search does. Public
+      // providers need no credentials to fetch.
+      const needsDetails =
+        foodProviderNeedsDetailFetch(item.source) || !!recipeImportTarget;
+      if (needsDetails && (providerId || isPublicFoodProvider(item.source))) {
         setLoadingFood({ id: item.id, scope: detailScope });
         try {
           const detailed = await fetchExternalFoodDetails(
             item.source,
             item.id,
-            providerId,
+            providerId ?? undefined,
             // Keep the serving the result row displayed so the detail view
-            // doesn't silently switch to the provider's default serving.
-            {
-              serving_size: item.serving_size,
-              serving_unit: item.serving_unit,
-              serving_description: item.serving_description,
-            }
+            // doesn't silently switch to the provider's default serving;
+            // a bare 100 g/100 ml reference is not a choice, so a named
+            // serving ("1 medium banana") may replace it.
+            isReferenceServing(item.serving_size, item.serving_unit)
+              ? undefined
+              : {
+                  serving_size: item.serving_size,
+                  serving_unit: item.serving_unit,
+                  serving_description: item.serving_description,
+                }
           );
           if (!current()) return;
           // The details endpoint does not always echo the photo the search
