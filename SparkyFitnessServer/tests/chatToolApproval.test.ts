@@ -262,14 +262,14 @@ it('always cards deletes, preserves ordinary writes, and denies unknown tools', 
     'user-approval'
   );
 });
-it('removes hosted web search after outside results and resets on a new turn', () => {
+it('removes hosted web search and fetch after outside results and resets on a new turn', () => {
   const gate = createChatApprovalGate([]);
   expect(
-    gate.restrictActiveTools(['web_search', 'sparky_manage_food'])
-  ).toEqual(['web_search', 'sparky_manage_food']);
+    gate.restrictActiveTools(['web_search', 'web_fetch', 'sparky_manage_food'])
+  ).toEqual(['web_search', 'web_fetch', 'sparky_manage_food']);
   gate.prepareStep({ steps: [{ toolResults: [{ toolName: 'mcp_notes' }] }] });
   expect(
-    gate.restrictActiveTools(['web_search', 'sparky_manage_food'])
+    gate.restrictActiveTools(['web_search', 'web_fetch', 'sparky_manage_food'])
   ).toEqual(['sparky_manage_food']);
   expect(
     createChatApprovalGate([

@@ -632,7 +632,10 @@ it('preserves lazy provider schemas while normalizing application Zod schemas', 
     true,
     ['food'],
     false,
-    { actorUserId: 'lazy-schema-review', foodResearchTool: research }
+    {
+      actorUserId: 'lazy-schema-review',
+      foodResearchTools: { web_search: research },
+    }
   );
   expect(tools.web_search.inputSchema).toBe(research.inputSchema);
   expect(tools.sparky_manage_food.inputSchema).toBeInstanceOf(z.ZodType);

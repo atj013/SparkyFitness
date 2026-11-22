@@ -154,6 +154,8 @@ export function outsideResultSeen(
   );
 }
 
+const HOSTED_WEB_TOOLS = new Set(['web_search', 'web_fetch']);
+
 export function createChatApprovalGate(messages: readonly ApprovalMessage[]) {
   let steps: readonly ResultStep[] = [];
   const toolApproval: ToolApprovalConfiguration<ToolSet, unknown> = ({
@@ -172,9 +174,11 @@ export function createChatApprovalGate(messages: readonly ApprovalMessage[]) {
     prepareStep: (options: { steps: readonly ResultStep[] }) => {
       steps = options.steps;
     },
+    // After an outside result, hosted web research could carry what that
+    // result asked for out to the web, so it leaves for the rest of the turn.
     restrictActiveTools: (names: readonly string[]) =>
       outsideResultSeen(messages, steps)
-        ? names.filter((name) => name !== 'web_search')
+        ? names.filter((name) => !HOSTED_WEB_TOOLS.has(name))
         : [...names],
   };
 }

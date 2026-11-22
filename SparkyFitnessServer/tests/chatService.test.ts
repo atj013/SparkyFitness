@@ -10,7 +10,7 @@ import type { UIMessageChunk } from 'ai';
 import chatService, {
   mapUsageToMetadata,
   buildChatStopConditions,
-  buildFoodResearchTool,
+  buildFoodResearchTools,
 } from '../services/chatService.js';
 import { ASK_USER_TOOL_NAME } from '@workspace/shared';
 import chatRepository, {
@@ -3717,28 +3717,42 @@ describe('chatService', () => {
   });
 });
 
-describe('buildFoodResearchTool', () => {
-  const idOf = (built: unknown) => (built as { id?: string } | undefined)?.id;
+describe('buildFoodResearchTools', () => {
+  const ids = (built: Record<string, unknown> | undefined) =>
+    built
+      ? Object.fromEntries(
+          Object.entries(built).map(([name, t]) => [
+            name,
+            (t as { id?: string }).id,
+          ])
+        )
+      : undefined;
 
-  it('gives Claude Sonnet 5.5 the dynamic-filtering web search', () => {
+  it('gives Claude Sonnet 5.5 dynamic-filtering web search and web fetch', () => {
     expect(
-      idOf(buildFoodResearchTool('anthropic', 'claude-sonnet-5-5', 'k'))
-    ).toBe('anthropic.web_search_20260209');
+      ids(buildFoodResearchTools('anthropic', 'claude-sonnet-5-5', 'k'))
+    ).toEqual({
+      web_search: 'anthropic.web_search_20260209',
+      web_fetch: 'anthropic.web_fetch_20260209',
+    });
   });
 
-  it('gives Claude Haiku 5.5 the basic web search', () => {
+  it('gives Claude Haiku 5.5 the basic web search and web fetch', () => {
     expect(
-      idOf(buildFoodResearchTool('anthropic', 'claude-haiku-5-5', 'k'))
-    ).toBe('anthropic.web_search_20250305');
+      ids(buildFoodResearchTools('anthropic', 'claude-haiku-5-5', 'k'))
+    ).toEqual({
+      web_search: 'anthropic.web_search_20250305',
+      web_fetch: 'anthropic.web_fetch_20250910',
+    });
   });
 
-  it('gives no web search to Claude models without it, or to other services', () => {
+  it('gives no web tools to Claude models without them, or to other services', () => {
     expect(
-      buildFoodResearchTool('anthropic', 'claude-3-haiku-20240307', 'k')
+      buildFoodResearchTools('anthropic', 'claude-3-haiku-20240307', 'k')
     ).toBeUndefined();
     expect(
-      buildFoodResearchTool('google', 'gemini-3-pro', 'k')
+      buildFoodResearchTools('google', 'gemini-3-pro', 'k')
     ).toBeUndefined();
-    expect(buildFoodResearchTool('openai', 'gpt-4o', 'k')).toBeUndefined();
+    expect(buildFoodResearchTools('openai', 'gpt-4o', 'k')).toBeUndefined();
   });
 });

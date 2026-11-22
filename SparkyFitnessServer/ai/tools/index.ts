@@ -90,8 +90,11 @@ export interface ToolBuildContext {
   latestImageDataUrl?: string | null;
   /** The active AI service config ID from the current chat session, if known. */
   serviceConfigId?: string | null;
-  /** Provider-executed web research, offered within the food category only. */
-  foodResearchTool?: Tool;
+  /**
+   * Provider-executed web research (`web_search`, and `web_fetch` where the
+   * provider has it), offered within the food category only.
+   */
+  foodResearchTools?: ToolMap;
   /**
    * This turn's tools from the outside MCP servers an admin added (see
    * mcpServerTools.ts). Only buildChatToolSurface reads them: they belong to
@@ -111,8 +114,7 @@ const CATEGORY_BUILDERS: Record<
     (u, tz) => buildRunProgramTools(u, tz),
   ],
   food: [
-    (_u, _tz, ctx): ToolMap =>
-      ctx?.foodResearchTool ? { web_search: ctx.foodResearchTool } : {},
+    (_u, _tz, ctx): ToolMap => ctx?.foodResearchTools ?? {},
     (u, tz) => buildFoodTools(u, tz),
     (u, _tz, ctx) => buildFoodAssistantTools(u, ctx),
     (u, tz) => buildFavoritesTools(u, tz),

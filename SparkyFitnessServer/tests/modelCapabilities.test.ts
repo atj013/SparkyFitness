@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
-  anthropicWebSearchVersion,
+  anthropicWebToolVersion,
   detectRejectedParam,
   describeRejectedParam,
   isParamRejected,
@@ -189,8 +189,8 @@ describe('supportsTemperature — learned gate', () => {
   });
 });
 
-describe('anthropicWebSearchVersion', () => {
-  it('gives Claude 4.6 and later the dynamic-filtering version', () => {
+describe('anthropicWebToolVersion', () => {
+  it('gives Claude 4.6 and later the dynamic-filtering versions', () => {
     for (const model of [
       'claude-sonnet-5-5',
       'claude-sonnet-5',
@@ -200,24 +200,24 @@ describe('anthropicWebSearchVersion', () => {
       'claude-sonnet-4-6',
       'claude-fable-5-2',
     ]) {
-      expect(anthropicWebSearchVersion(model)).toBe('web_search_20260209');
+      expect(anthropicWebToolVersion(model)).toBe('dynamic');
     }
   });
 
-  it('gives Haiku 5.5 and the 4.5 models the basic version', () => {
+  it('gives Haiku 5.5 and the 4.5 models the basic versions', () => {
     for (const model of [
       'claude-haiku-5-5',
       'claude-haiku-4-5-20251001',
       'claude-sonnet-4-5-20250929',
       'claude-opus-4-5-20251101',
     ]) {
-      expect(anthropicWebSearchVersion(model)).toBe('web_search_20250305');
+      expect(anthropicWebToolVersion(model)).toBe('basic');
     }
   });
 
-  it('gives no web search to unknown or retired models', () => {
-    expect(anthropicWebSearchVersion('claude-3-haiku-20240307')).toBeNull();
-    expect(anthropicWebSearchVersion('gpt-6')).toBeNull();
-    expect(anthropicWebSearchVersion('')).toBeNull();
+  it('gives no web tools to unknown or retired models', () => {
+    expect(anthropicWebToolVersion('claude-3-haiku-20240307')).toBeNull();
+    expect(anthropicWebToolVersion('gpt-6')).toBeNull();
+    expect(anthropicWebToolVersion('')).toBeNull();
   });
 });
