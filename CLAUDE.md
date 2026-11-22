@@ -10,6 +10,7 @@ See @AGENTS.md
 - A server change: commit it on `diary-meal-sections`, cherry-pick it onto `fork-server`, run the server tests there, push both. Then the maintainer runs `docker compose pull` and `docker compose up -d`.
 - A new upstream release: ask before moving `fork-server` to it (`git rebase --onto <new tag> <old tag> fork-server`, force-push). Moving it runs that release's migrations on the maintainer's database; they back the database up first. Their web app stays on the official `codewithcj/sparkyfitness` image at the same release.
 - Pushing these branches and syncing `main` is part of this flow; sending anything to upstream (pull requests, issues, comments) needs the maintainer's say-so each time.
+- On the fork, every upstream GitHub Actions workflow is disabled on purpose (they need upstream's secrets, or run upstream's own release jobs); only "Fork server image (GHCR)" is on. A workflow can be switched back on with `gh workflow enable "<name>" --repo atj013/sparkyfitness`.
 
 ## Android APK releases (atj013/sparkyfitness)
 
