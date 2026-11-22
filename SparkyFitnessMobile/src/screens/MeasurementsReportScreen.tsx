@@ -36,15 +36,15 @@ type MeasurementsReportScreenProps = RootStackScreenProps<'MeasurementsReport'>;
 const withSign = (value: number, magnitude: string) =>
   `${value > 0 ? '+' : value < 0 ? '-' : ''}${magnitude}`;
 
-const MeasurementsReportScreen: React.FC<
-  MeasurementsReportScreenProps
-> = () => {
+const MeasurementsReportScreen: React.FC<MeasurementsReportScreenProps> = ({
+  route,
+}) => {
   const { t } = useTranslation();
   const {
     window: reportWindow,
     rangeProps,
     isSectionShown,
-  } = useReportCustomization();
+  } = useReportCustomization(route?.params?.range);
   const { isConnected } = useServerConnection();
   const { preferences } = usePreferences({ enabled: isConnected });
   const { profile } = useProfile();

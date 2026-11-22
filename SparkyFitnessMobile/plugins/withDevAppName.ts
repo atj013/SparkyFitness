@@ -13,7 +13,11 @@ import {
   withStringsXml,
 } from 'expo/config-plugins';
 
-export const DEV_APP_NAME = 'DevSparkyFitness';
+// A local build can show another name, e.g. plain "SparkyFitness" on a phone
+// without the production app, by setting DEV_APP_NAME in SparkyFitnessMobile/.env.
+// The ids stay the dev ones either way.
+export const DEV_APP_NAME =
+  process.env.DEV_APP_NAME?.trim() || 'DevSparkyFitness';
 
 const withDevAppName: ConfigPlugin = (config) => {
   config = withInfoPlist(config, (innerConfig) => {

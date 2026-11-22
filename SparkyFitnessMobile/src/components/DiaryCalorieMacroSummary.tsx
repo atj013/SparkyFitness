@@ -187,6 +187,18 @@ const DiaryCalorieMacroSummary: React.FC<DiaryCalorieMacroSummaryProps> = ({
     (s) => s.setDiarySummaryExpanded
   );
   const textSecondary = useCSSVariable('--color-text-secondary') as string;
+  const [proteinColor, carbsColor, fatColor, fiberColor] = useCSSVariable([
+    '--color-macro-protein',
+    '--color-macro-carbs',
+    '--color-macro-fat',
+    '--color-macro-fiber',
+  ]) as [string, string, string, string];
+  const macroColor: Record<(typeof CORE_MACROS)[number], string> = {
+    protein: proteinColor,
+    carbs: carbsColor,
+    fat: fatColor,
+    dietary_fiber: fiberColor,
+  };
 
   const rotation = useSharedValue(diarySummaryExpanded ? 0 : -90);
   useEffect(() => {
@@ -348,6 +360,7 @@ const DiaryCalorieMacroSummary: React.FC<DiaryCalorieMacroSummaryProps> = ({
                 label={label}
                 consumed={consumed}
                 goal={macroGoal}
+                progressColor={macroColor[key]}
               />
             );
           })}

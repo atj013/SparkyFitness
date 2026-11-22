@@ -25,12 +25,21 @@ interface SwipeableFoodRowProps {
   entry: FoodEntry;
   nutrition: EntryNutrition;
   onAdjustServing?: (entry: FoodEntry) => void;
+  /**
+   * One line per food, for the Diary's single Food list: a small photo, no
+   * time, and the name and serving truncated together.
+   */
+  compact?: boolean;
+  /** A one-letter meal tag shown before the name (compact rows only). */
+  mealTag?: { letter: string; label: string };
 }
 
 const SwipeableFoodRow: React.FC<SwipeableFoodRowProps> = ({
   entry,
   nutrition,
   onAdjustServing,
+  compact = false,
+  mealTag,
 }) => {
   const { t } = useTranslation();
   const { preferences } = usePreferences();
@@ -144,7 +153,20 @@ const SwipeableFoodRow: React.FC<SwipeableFoodRowProps> = ({
         overshootRight={false}
         rightThreshold={40}
       >
-        <View className="py-1.5 flex-row items-center bg-surface">
+        <View
+          className={`${compact ? 'py-1 min-h-[32px]' : 'py-1.5'} flex-row items-center bg-surface`}
+        >
+          {compact && mealTag ? (
+            <View
+              accessible
+              accessibilityLabel={mealTag.label}
+              className="w-[18px] h-[18px] rounded-[5px] bg-border items-center justify-center mr-2"
+            >
+              <Text className="text-[10px] font-bold text-text-secondary">
+                {mealTag.letter}
+              </Text>
+            </View>
+          ) : null}
           {/* Diary rows are deliberately dense, so this slot collapses to
               nothing when an entry has no photo — a photo-free day keeps the
               exact layout it had before images existed. */}
@@ -152,7 +174,7 @@ const SwipeableFoodRow: React.FC<SwipeableFoodRowProps> = ({
             <FoodThumbnail
               image={entryImage}
               getImageSource={getImageSource}
-              size={56}
+              size={compact ? 24 : 56}
               showFallback={false}
               style={{ marginRight: 8 }}
               onPress={() => openLightbox(diaryEntryImages(entry), 0, name)}
@@ -164,23 +186,33 @@ const SwipeableFoodRow: React.FC<SwipeableFoodRowProps> = ({
             onPress={handlePress}
             onLongPress={handleLongPress}
           >
-            <View className="flex-row flex-wrap items-baseline">
+            {compact ? (
               <Text className="text-md text-text-primary" numberOfLines={1}>
                 {name}
-              </Text>
-              <Text className="text-sm text-text-secondary" numberOfLines={1}>
-                {' · '}
-                {entry.quantity} {entry.unit}
-              </Text>
-              {timeLabel && (
-                <Text
-                  className="text-xs text-text-link ml-1.5"
-                  numberOfLines={1}
-                >
-                  {timeLabel}
+                <Text className="text-sm text-text-secondary">
+                  {' · '}
+                  {entry.quantity} {entry.unit}
                 </Text>
-              )}
-            </View>
+              </Text>
+            ) : (
+              <View className="flex-row flex-wrap items-baseline">
+                <Text className="text-md text-text-primary" numberOfLines={1}>
+                  {name}
+                </Text>
+                <Text className="text-sm text-text-secondary" numberOfLines={1}>
+                  {' · '}
+                  {entry.quantity} {entry.unit}
+                </Text>
+                {timeLabel && (
+                  <Text
+                    className="text-xs text-text-link ml-1.5"
+                    numberOfLines={1}
+                  >
+                    {timeLabel}
+                  </Text>
+                )}
+              </View>
+            )}
             <AllergenBadges allergens={entry.allergens} traces={entry.traces} />
           </TouchableOpacity>
           {canQuickAdjust ? (

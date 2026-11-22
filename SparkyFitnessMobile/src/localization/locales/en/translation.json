@@ -1543,6 +1543,45 @@
       "none": "No weight logged yet",
       "a11y": "Log weight for this day"
     },
+    "food": {
+      "title": "Food",
+      "count_one": "{{count}} item",
+      "count_other": "{{count}} items",
+      "energySeparator": " · {{energy}} {{unit}}",
+      "add": "Add food"
+    },
+    "plan": {
+      "position": "{{plan}} • {{position}}",
+      "startA11y": "Start {{session}}"
+    },
+    "sleep": {
+      "title": "Sleep",
+      "range": "{{start}} – {{end}}",
+      "score": "Score {{score}}",
+      "a11y": "Sleep {{duration}}, {{range}}. Open sleep details"
+    },
+    "tiles": {
+      "noValue": "—",
+      "weight": "Weight",
+      "weightChange": "{{change}} in 7 days",
+      "weightA11y": "Weight {{value}}. Open weight trend",
+      "steps": "Steps",
+      "stepsOfGoal": "{{percent}}% of {{goal}}",
+      "stepsA11y": "{{value}} steps. Open this week’s steps",
+      "water": "Water",
+      "waterGoal": " / {{goal}} {{unit}}",
+      "waterAverage": "Avg: {{value}} {{unit}}",
+      "waterA11y": "Water {{value}} {{unit}}. Open this week’s water",
+      "addWater": "Add water",
+      "removeWater": "Remove water",
+      "meds": "Meds",
+      "medsOpen": "Open medications",
+      "medsMorning": "Morning medications",
+      "medsEvening": "Afternoon and evening medications",
+      "medsSlotA11y": "{{name}}, {{status}}",
+      "medsTaken": "taken",
+      "medsNotTaken": "not taken"
+    },
     "chooseDate": "Choose diary date",
     "loading": "Loading diary...",
     "loadFailed": "Failed to load diary",

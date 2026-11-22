@@ -12,7 +12,6 @@ import {
   useServerConnection,
 } from '../../src/hooks';
 import { useMeasurements } from '../../src/hooks/useMeasurements';
-import { useCustomMeasurementsByDate } from '../../src/hooks/useCustomMeasurements';
 import { useDiaryDateStore } from '../../src/stores/diaryDateStore';
 import { useSleepDay } from '../../src/hooks/useSleepDay';
 import { getTodayDate } from '../../src/utils/dateUtils';
@@ -52,8 +51,6 @@ jest.mock('@react-navigation/native', () => {
   };
 });
 
-import { useOfflineDiaryDay } from '../../src/hooks/useOfflineDiaryDay';
-
 jest.mock('../../src/hooks/useOfflineDiaryDay', () => ({
   useOfflineDiaryDay: jest.fn(() => ({ saved: null, waiting: [] })),
 }));
@@ -73,16 +70,6 @@ jest.mock('../../src/hooks', () => ({
 
 jest.mock('../../src/hooks/useMeasurements', () => ({
   useMeasurements: jest.fn(),
-}));
-
-jest.mock('../../src/hooks/useCustomMeasurements', () => ({
-  useCustomMeasurementsByDate: jest.fn(),
-}));
-
-// Categories of features turned off on purpose (Settings → Features).
-let mockHiddenCategories: ReadonlySet<string> = new Set();
-jest.mock('../../src/hooks/useMobileFeatures', () => ({
-  useMobileFeatures: () => ({ hiddenCustomCategories: mockHiddenCategories }),
 }));
 
 // This suite renders DiaryScreen without a QueryClientProvider, so the sleep hook's real
@@ -228,9 +215,45 @@ jest.mock('../../src/components/StatusView', () => {
   };
 });
 
-jest.mock('../../src/components/FoodSummary', () => {
+// The run-program prompts sit below the first screen and read their own query.
+jest.mock('../../src/components/recording/RunEffortPrompt', () => ({
+  __esModule: true,
+  default: () => null,
+}));
+jest.mock('../../src/components/recording/ProgramRetestPrompt', () => ({
+  __esModule: true,
+  default: () => null,
+}));
+jest.mock('../../src/components/recording/RunProgramBanner', () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
+jest.mock('../../src/components/diary/DiaryFoodCard', () => {
   const { View } = require('react-native');
-  return { __esModule: true, default: () => <View testID="food-summary" /> };
+  return {
+    __esModule: true,
+    default: () => <View testID="diary-food-card" />,
+  };
+});
+
+jest.mock('../../src/components/diary/DiaryPlanCard', () => {
+  const { View } = require('react-native');
+  return {
+    __esModule: true,
+    default: () => <View testID="diary-plan-card" />,
+  };
+});
+
+jest.mock('../../src/components/diary/DiaryTiles', () => {
+  const { View } = require('react-native');
+  return {
+    __esModule: true,
+    WeightTile: () => <View testID="weight-tile" />,
+    StepsTile: () => <View testID="steps-tile" />,
+    WaterTile: () => <View testID="water-tile" />,
+    MedsTile: () => <View testID="meds-tile" />,
+  };
 });
 
 jest.mock('../../src/components/ExerciseSummary', () => {
@@ -238,14 +261,6 @@ jest.mock('../../src/components/ExerciseSummary', () => {
   return {
     __esModule: true,
     default: () => <View testID="exercise-summary" />,
-  };
-});
-
-jest.mock('../../src/components/MeasurementsSummary', () => {
-  const { View } = require('react-native');
-  return {
-    __esModule: true,
-    default: () => <View testID="measurements-summary" />,
   };
 });
 
@@ -268,24 +283,6 @@ jest.mock('../../src/hooks/useWaterIntakeMutation', () => ({
     selectContainer: jest.fn(),
   }),
 }));
-
-jest.mock('../../src/components/HydrationGauge', () => {
-  const { View } = require('react-native');
-  return { __esModule: true, default: () => <View testID="hydration-gauge" /> };
-});
-
-jest.mock('../../src/components/DiaryWeightCard', () => {
-  const { View } = require('react-native');
-  return {
-    __esModule: true,
-    default: () => <View testID="diary-weight-card" />,
-  };
-});
-
-jest.mock('../../src/components/EmptyDayIllustration', () => {
-  const { View } = require('react-native');
-  return { __esModule: true, default: () => <View testID="empty-day" /> };
-});
 
 jest.mock('../../src/components/Icon', () => {
   const { View } = require('react-native');
@@ -314,10 +311,6 @@ const mockUseNutrientDisplayPreferences =
 const mockUseMeasurements = useMeasurements as jest.MockedFunction<
   typeof useMeasurements
 >;
-const mockUseCustomMeasurementsByDate =
-  useCustomMeasurementsByDate as jest.MockedFunction<
-    typeof useCustomMeasurementsByDate
-  >;
 const mockUseNativeIOSTabsActive =
   useNativeIOSTabsActive as jest.MockedFunction<typeof useNativeIOSTabsActive>;
 const mockSetNativeHeaderDatePickerOptions =
@@ -368,7 +361,6 @@ const buildFoodEntry = (id: string): FoodEntry => ({
 
 const refetchSummary = jest.fn();
 const refetchMeasurements = jest.fn();
-const refetchCustomMeasurements = jest.fn();
 const refetchCustomNutrients = jest.fn();
 const refetchNutrientPrefs = jest.fn();
 const refetchSleep = jest.fn();
@@ -423,10 +415,6 @@ const configureOnlineData = (
     isError: false,
     refetch: refetchMeasurements,
   } as ReturnType<typeof useMeasurements>);
-  mockUseCustomMeasurementsByDate.mockReturnValue({
-    data: [],
-    refetch: refetchCustomMeasurements,
-  } as ReturnType<typeof useCustomMeasurementsByDate>);
   mockUseCustomNutrients.mockReturnValue({
     customNutrients: [],
     refetch: refetchCustomNutrients,
@@ -446,45 +434,6 @@ const renderScreen = () =>
       <DiaryScreen navigation={mockNavigation} route={diaryRoute} />
     </SafeAreaProvider>
   );
-
-describe('DiaryScreen custom measurements of a feature turned off', () => {
-  const flowEntry = {
-    id: 'flow-1',
-    category_id: 'flow',
-    value: '2',
-    entry_date: '2024-06-15',
-    source: 'manual',
-    custom_categories: { name: 'menstruation_flow' },
-  };
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-    mockHiddenCategories = new Set();
-    useDiaryDateStore.setState({
-      selectedDate: '2024-06-15',
-      lastKnownToday: getTodayDate(),
-    });
-    configureConnection(true);
-    mockUseNativeIOSTabsActive.mockReturnValue(false);
-    configureFamilyUsers([]);
-    configureOnlineData();
-    mockUseCustomMeasurementsByDate.mockReturnValue({
-      data: [flowEntry],
-      refetch: refetchCustomMeasurements,
-    } as unknown as ReturnType<typeof useCustomMeasurementsByDate>);
-  });
-
-  test('shows a manual reproductive entry while cycle is on', () => {
-    const { getByTestId } = renderScreen();
-    expect(getByTestId('measurements-summary')).toBeTruthy();
-  });
-
-  test('leaves it out while cycle is turned off on purpose', () => {
-    mockHiddenCategories = new Set(['menstruation_flow']);
-    const { queryByTestId } = renderScreen();
-    expect(queryByTestId('measurements-summary')).toBeNull();
-  });
-});
 
 describe('DiaryScreen custom queries', () => {
   beforeEach(() => {
@@ -512,8 +461,7 @@ describe('DiaryScreen custom queries', () => {
 
     renderScreen();
 
-    expect(mockUseCustomMeasurementsByDate).toHaveBeenCalledWith(
-      '2024-06-15',
+    expect(mockUseCustomNutrients).toHaveBeenCalledWith(
       expect.objectContaining({ enabled: false })
     );
   });
@@ -521,8 +469,7 @@ describe('DiaryScreen custom queries', () => {
   test('Test B — custom queries are enabled online', () => {
     renderScreen();
 
-    expect(mockUseCustomMeasurementsByDate).toHaveBeenCalledWith(
-      '2024-06-15',
+    expect(mockUseCustomNutrients).toHaveBeenCalledWith(
       expect.objectContaining({ enabled: true })
     );
   });
@@ -537,7 +484,6 @@ describe('DiaryScreen custom queries', () => {
 
     expect(refetchSummary).toHaveBeenCalledTimes(1);
     expect(refetchMeasurements).toHaveBeenCalledTimes(1);
-    expect(refetchCustomMeasurements).toHaveBeenCalledTimes(1);
     expect(refetchCustomNutrients).toHaveBeenCalledTimes(1);
     expect(refetchNutrientPrefs).toHaveBeenCalledTimes(1);
   });
@@ -550,7 +496,7 @@ describe('DiaryScreen custom queries', () => {
     // Offline renders the StatusView without a ScrollView, so there is no
     // RefreshControl surface at all and no refetch can be triggered.
     expect(UNSAFE_queryByType(RefreshControl)).toBeNull();
-    expect(refetchCustomMeasurements).not.toHaveBeenCalled();
+    expect(refetchCustomNutrients).not.toHaveBeenCalled();
     expect(refetchSummary).not.toHaveBeenCalled();
   });
 
@@ -598,21 +544,19 @@ describe('DiaryScreen custom queries', () => {
     expect(UNSAFE_getByType(RefreshControl).props.refreshing).toBe(false);
   });
 
-  test('Test F — changing the diary date switches custom queries to the new date', () => {
+  test('Test F — changing the diary date switches the day’s queries to the new date', () => {
     const { getByTestId } = renderScreen();
 
-    expect(mockUseCustomMeasurementsByDate).toHaveBeenLastCalledWith(
-      '2024-06-15',
-      expect.objectContaining({ enabled: true })
+    expect(mockUseMeasurements).toHaveBeenLastCalledWith(
+      expect.objectContaining({ date: '2024-06-15', enabled: true })
     );
 
     act(() => {
       useDiaryDateStore.getState().setSelectedDate('2024-06-16');
     });
 
-    expect(mockUseCustomMeasurementsByDate).toHaveBeenLastCalledWith(
-      '2024-06-16',
-      expect.objectContaining({ enabled: true })
+    expect(mockUseMeasurements).toHaveBeenLastCalledWith(
+      expect.objectContaining({ date: '2024-06-16', enabled: true })
     );
     expect(getByTestId('date-navigator')).toBeTruthy();
   });
@@ -620,12 +564,10 @@ describe('DiaryScreen custom queries', () => {
   test('Test G — a failing custom refetch does not block the other refetches nor throw', async () => {
     const refetchReject = jest.fn().mockRejectedValue(new Error('boom'));
     configureOnlineData();
-    mockUseCustomMeasurementsByDate.mockReturnValue({
-      data: [],
-      isLoading: false,
-      isError: false,
+    mockUseCustomNutrients.mockReturnValue({
+      customNutrients: [],
       refetch: refetchReject,
-    } as ReturnType<typeof useCustomMeasurementsByDate>);
+    } as unknown as ReturnType<typeof useCustomNutrients>);
     const { UNSAFE_getByType, UNSAFE_queryByType } = renderScreen();
 
     const refreshControl = UNSAFE_queryByType(RefreshControl);
@@ -638,7 +580,6 @@ describe('DiaryScreen custom queries', () => {
     // Every other query still ran.
     expect(refetchSummary).toHaveBeenCalled();
     expect(refetchMeasurements).toHaveBeenCalled();
-    expect(refetchCustomNutrients).toHaveBeenCalled();
     expect(refetchNutrientPrefs).toHaveBeenCalled();
     // Spinner tears down after the rejected query.
     expect(UNSAFE_getByType(RefreshControl).props.refreshing).toBe(false);
@@ -740,57 +681,68 @@ describe('DiaryScreen sleep cards', () => {
     configureSleep();
   });
 
-  test('renders all three cards when the day has sleep data', () => {
-    const { getByTestId } = renderScreen();
-
-    expect(getByTestId('wake-up-card')).toBeTruthy();
-    expect(getByTestId('naps-card')).toBeTruthy();
-    expect(getByTestId('bed-time-card')).toBeTruthy();
-  });
-
-  test('sleep alone keeps the day non-empty, suppressing the illustration', () => {
-    // baseSummary has no food, exercise or measurements — sleep is the only thing
-    // recorded. A day the user slept through is not an empty day.
+  test('shows last night on the first screen and naps and bedtime below', () => {
     const { getByTestId, queryByTestId } = renderScreen();
 
-    expect(queryByTestId('empty-day')).toBeNull();
-    expect(getByTestId('wake-up-card')).toBeTruthy();
-    // The food and exercise sections still render, empty, as the day's scaffolding.
-    expect(getByTestId('food-summary')).toBeTruthy();
-    expect(getByTestId('exercise-summary')).toBeTruthy();
+    expect(getByTestId('diary-sleep-card')).toBeTruthy();
+    expect(getByTestId('naps-card')).toBeTruthy();
+    expect(getByTestId('bed-time-card')).toBeTruthy();
+    // The Sleep card replaces the old Wake Up card.
+    expect(queryByTestId('wake-up-card')).toBeNull();
   });
 
-  test('a workout waiting to upload keeps an empty server day from showing the empty illustration', () => {
-    // The server has nothing for the day yet (reconnected, upload still going
-    // up): the waiting workout is on the day, so the day is not empty.
+  test('opens last night’s details from the Sleep card', () => {
+    const { getByTestId } = renderScreen();
+
+    fireEvent.press(getByTestId('diary-sleep-card'));
+
+    expect(mockNavigation.navigate).toHaveBeenCalledWith('SleepDetail', {
+      entryId: 'overnight',
+      day: '2024-06-15',
+    });
+  });
+
+  test('shows the first screen alongside the sleep cards', () => {
+    // baseSummary has no food, exercise or measurements — sleep is the only thing
+    // recorded. The first screen is always there, sleep included.
+    const { getByTestId } = renderScreen();
+
+    expect(getByTestId('diary-sleep-card')).toBeTruthy();
+    expect(getByTestId('diary-food-card')).toBeTruthy();
+    expect(getByTestId('water-tile')).toBeTruthy();
+  });
+
+  test('leaves the logged-workouts list and measurements off the Diary', () => {
+    mockUseMeasurements.mockReturnValue({
+      measurements: { weight: 80, waist: 90 },
+      isLoading: false,
+      isError: false,
+      refetch: refetchMeasurements,
+    } as unknown as ReturnType<typeof useMeasurements>);
+
+    const { queryByTestId, queryByText } = renderScreen();
+
+    expect(queryByTestId('exercise-summary')).toBeNull();
+    expect(queryByText('Measurements')).toBeNull();
+  });
+
+  test('an empty day still shows the first screen, not an empty-day prompt', () => {
     configureSleep({ wakeUp: null, naps: [], bedTime: null });
-    (useOfflineDiaryDay as jest.Mock).mockReturnValue({
-      saved: null,
-      waiting: [
-        { type: 'preset', id: 'w-1', name: 'Waiting push', exercises: [] },
-      ],
-    });
 
-    const { queryByTestId, getByTestId } = renderScreen();
+    const { getByTestId, queryByText } = renderScreen();
 
-    expect(queryByTestId('empty-day')).toBeNull();
-    expect(getByTestId('exercise-summary')).toBeTruthy();
-    (useOfflineDiaryDay as jest.Mock).mockReturnValue({
-      saved: null,
-      waiting: [],
-    });
+    expect(getByTestId('diary-food-card')).toBeTruthy();
+    expect(getByTestId('water-tile')).toBeTruthy();
+    expect(queryByText('Add Food')).toBeNull();
   });
 
-  test('a nap alone is enough to keep the day non-empty', () => {
-    // Each sleep field independently suppresses the illustration, so a day holding
-    // only an afternoon nap still renders as a real day.
+  test('a nap alone shows only the naps card', () => {
     configureSleep({ wakeUp: null, naps: [napEntry], bedTime: null });
 
     const { getByTestId, queryByTestId } = renderScreen();
 
-    expect(queryByTestId('empty-day')).toBeNull();
     expect(getByTestId('naps-card')).toBeTruthy();
-    expect(queryByTestId('wake-up-card')).toBeNull();
+    expect(queryByTestId('diary-sleep-card')).toBeNull();
     expect(queryByTestId('bed-time-card')).toBeNull();
   });
 
@@ -802,33 +754,11 @@ describe('DiaryScreen sleep cards', () => {
     const { getByTestId, queryByTestId } = renderScreen();
 
     expect(queryByTestId('status-view')).toBeNull();
-    expect(getByTestId('food-summary')).toBeTruthy();
-    expect(getByTestId('exercise-summary')).toBeTruthy();
+    expect(getByTestId('diary-food-card')).toBeTruthy();
+    expect(getByTestId('diary-plan-card')).toBeTruthy();
   });
 
-  test('holds the empty-day illustration until the sleep query settles', () => {
-    // Nothing else logged, so the day looks empty — but a night that is still loading
-    // could yet fill it. Showing the illustration now would flip to sleep cards a moment
-    // later; the sections stay up instead until sleep has actually answered.
-    configureSleep({ wakeUp: null, naps: [], bedTime: null, isLoading: true });
-
-    const { queryByTestId, rerender } = renderScreen();
-
-    expect(queryByTestId('empty-day')).toBeNull();
-    expect(queryByTestId('wake-up-card')).toBeNull();
-
-    // Sleep resolves with nothing: now the day really is empty.
-    configureSleep({ wakeUp: null, naps: [], bedTime: null });
-    rerender(
-      <SafeAreaProvider initialMetrics={{ frame, insets }}>
-        <DiaryScreen navigation={mockNavigation} route={diaryRoute} />
-      </SafeAreaProvider>
-    );
-
-    expect(queryByTestId('empty-day')).toBeTruthy();
-  });
-
-  test('a bed time alone is enough to keep the day non-empty', () => {
+  test('a bed time alone shows only the bed time card', () => {
     configureSleep({
       wakeUp: null,
       naps: [],
@@ -837,11 +767,11 @@ describe('DiaryScreen sleep cards', () => {
 
     const { getByTestId, queryByTestId } = renderScreen();
 
-    expect(queryByTestId('empty-day')).toBeNull();
     expect(getByTestId('bed-time-card')).toBeTruthy();
+    expect(queryByTestId('diary-sleep-card')).toBeNull();
   });
 
-  test('orders the day: food, exercise, water, sleep, weight, then measurements', () => {
+  test('orders the day: food, sleep, plan, the four tiles, then naps and bedtime', () => {
     // A populated day so the food/exercise/measurements branch renders.
     mockUseDailySummary.mockReturnValue({
       summary: { ...baseSummary, foodEntries: [buildFoodEntry('f1')] },
@@ -849,18 +779,26 @@ describe('DiaryScreen sleep cards', () => {
       isError: false,
       refetch: refetchSummary,
     } as ReturnType<typeof useDailySummary>);
+    mockUseMeasurements.mockReturnValue({
+      measurements: { weight: 80 },
+      isLoading: false,
+      isError: false,
+      refetch: refetchMeasurements,
+    } as unknown as ReturnType<typeof useMeasurements>);
 
     const { getByTestId, UNSAFE_root } = renderScreen();
 
     const order = [
-      'food-summary',
-      'exercise-summary',
-      'hydration-gauge',
-      'wake-up-card',
+      'macro-summary',
+      'diary-food-card',
+      'diary-sleep-card',
+      'diary-plan-card',
+      'weight-tile',
+      'steps-tile',
+      'water-tile',
+      'meds-tile',
       'naps-card',
       'bed-time-card',
-      'diary-weight-card',
-      'measurements-summary',
     ];
     const positions = order.map((testID) => {
       const node = getByTestId(testID);
@@ -918,11 +856,11 @@ describe('DiaryScreen sleep cards', () => {
 
     // All three hide rather than showing empty states, so a user with no sleep source
     // sees no sleep section on the Diary.
-    expect(queryByTestId('wake-up-card')).toBeNull();
+    expect(queryByTestId('diary-sleep-card')).toBeNull();
     expect(queryByTestId('naps-card')).toBeNull();
     expect(queryByTestId('bed-time-card')).toBeNull();
-    // The pre-existing empty-day behaviour is untouched.
-    expect(getByTestId('empty-day')).toBeTruthy();
+    // The rest of the Diary is unaffected.
+    expect(getByTestId('diary-food-card')).toBeTruthy();
   });
 
   test('hides the cards entirely on a 403 rather than showing empty states', () => {
@@ -935,10 +873,10 @@ describe('DiaryScreen sleep cards', () => {
 
     const { queryByTestId, getByTestId } = renderScreen();
 
-    expect(queryByTestId('wake-up-card')).toBeNull();
+    expect(queryByTestId('diary-sleep-card')).toBeNull();
     expect(queryByTestId('bed-time-card')).toBeNull();
     // The rest of the Diary is unaffected.
-    expect(getByTestId('empty-day')).toBeTruthy();
+    expect(getByTestId('diary-food-card')).toBeTruthy();
   });
 
   test('pull-to-refresh refetches the sleep query alongside the others', async () => {

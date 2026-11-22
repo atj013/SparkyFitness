@@ -25,6 +25,7 @@ import type { NutritionLabelScan } from '../utils/labelScanFood';
 import type { SaveFoodPayload } from '../services/api/foodsApi';
 import type { CompletedSetMap, PrSetMap } from '../stores/activeWorkoutStore';
 import type { MealTypeKey } from '../utils/mealNutrition';
+import type { TrendRange } from '../utils/trendRange';
 import type {
   AssumedSetValues,
   LiveExerciseConfig,
@@ -293,10 +294,12 @@ export type RootStackParamList = {
     | undefined;
   RunSummary: RunSummaryParams;
   Reports: undefined;
-  HydrationReport: undefined;
+  /** `range` opens on that window instead of the Reports default (the Diary's Water tile asks for a week). */
+  HydrationReport: { range?: TrendRange } | undefined;
   OralCareReport: undefined;
   SubstancesReport: undefined;
-  MeasurementsReport: undefined;
+  /** `range` opens on that window instead of the Reports default (the Diary's Steps tile asks for a week). */
+  MeasurementsReport: { range?: TrendRange } | undefined;
   ReportsSettings: undefined;
   NutritionReport: undefined;
   SleepAnalytics: undefined;

@@ -27,7 +27,7 @@ export type SleepCardNavigation = CompositeNavigationProp<
  * wherever the device happens to be now — so a night slept in another timezone still
  * reads back as the clock the sleeper saw.
  */
-const useEntryClockTime = () => {
+export const useEntryClockTime = () => {
   const { preferences } = usePreferences();
 
   return React.useCallback(

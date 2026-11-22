@@ -25,13 +25,15 @@ import type { RootStackScreenProps } from '../types/navigation';
 
 type HydrationReportScreenProps = RootStackScreenProps<'HydrationReport'>;
 
-const HydrationReportScreen: React.FC<HydrationReportScreenProps> = () => {
+const HydrationReportScreen: React.FC<HydrationReportScreenProps> = ({
+  route,
+}) => {
   const { t } = useTranslation();
   const {
     window: reportWindow,
     rangeProps,
     isSectionShown,
-  } = useReportCustomization();
+  } = useReportCustomization(route?.params?.range);
   const { isConnected } = useServerConnection();
   const { preferences } = usePreferences({ enabled: isConnected });
   const { report, isLoading, isError } = useHydrationReport({

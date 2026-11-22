@@ -6,6 +6,8 @@ interface NutrientPillProps {
   consumed: number;
   goal?: number;
   unit?: string;
+  /** With a goal, draws a thin progress line in this color under the value. */
+  progressColor?: string;
 }
 
 const NutrientPill: React.FC<NutrientPillProps> = ({
@@ -13,7 +15,10 @@ const NutrientPill: React.FC<NutrientPillProps> = ({
   consumed,
   goal,
   unit = 'g',
+  progressColor,
 }) => {
+  const showProgress = !!progressColor && !!goal && goal > 0;
+  const percent = showProgress ? Math.min(100, (consumed / goal) * 100) : 0;
   return (
     <View className="w-[23%] bg-border rounded-xl px-0.5 py-2 items-center">
       <Text className="text-xs text-text-primary mb-1" numberOfLines={1}>
@@ -27,6 +32,17 @@ const NutrientPill: React.FC<NutrientPillProps> = ({
           ? `${Math.round(consumed)}${unit} / ${Math.round(goal)}${unit}`
           : `${Math.round(consumed)}${unit}`}
       </Text>
+      {showProgress ? (
+        <View
+          className="self-stretch mx-1.5 mt-1.5 h-[3px] rounded-full bg-progress-rail overflow-hidden"
+          testID="nutrient-pill-progress"
+        >
+          <View
+            className="h-[3px] rounded-full"
+            style={{ width: `${percent}%`, backgroundColor: progressColor }}
+          />
+        </View>
+      ) : null}
     </View>
   );
 };

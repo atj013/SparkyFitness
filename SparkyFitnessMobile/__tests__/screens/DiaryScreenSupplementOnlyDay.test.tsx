@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import DiaryScreen from '../../src/screens/DiaryScreen';
 import { useDailySummary } from '../../src/hooks';
+import { useAppPreferencesStore } from '../../src/stores/appPreferencesStore';
 import { EMPTY_SUPPLEMENT_TOTALS } from '@workspace/shared';
 import {
   createTestQueryClient,
@@ -22,15 +23,14 @@ jest.mock('../../src/hooks/useWaterIntakeMutation', () => ({
     selectContainer: jest.fn(),
   }),
 }));
-jest.mock('../../src/components/HydrationGauge', () => {
-  const { View } = require('react-native');
-  return { __esModule: true, default: () => <View testID="hydration-gauge" /> };
-});
-jest.mock('../../src/components/DiaryWeightCard', () => {
+jest.mock('../../src/components/diary/DiaryTiles', () => {
   const { View } = require('react-native');
   return {
     __esModule: true,
-    default: () => <View testID="diary-weight-card" />,
+    WeightTile: () => <View testID="weight-tile" />,
+    StepsTile: () => <View testID="steps-tile" />,
+    WaterTile: () => <View testID="water-tile" />,
+    MedsTile: () => <View testID="meds-tile" />,
   };
 });
 jest.mock('../../src/hooks/useOfflineDiaryDay', () => ({
@@ -97,6 +97,7 @@ jest.mock('../../src/stores/diaryDateStore', () => ({
 jest.mock('@react-navigation/native', () => ({
   ...jest.requireActual('@react-navigation/native'),
   useFocusEffect: () => undefined,
+  useIsFocused: () => true,
   useNavigation: () => mockNavigation,
 }));
 
@@ -184,26 +185,30 @@ const renderDiary = () => {
 };
 
 /**
- * The empty-state predicate was written when food was the only source of nutrition. A day
- * with a logged supplement and no meal has intake, so presenting it as an empty day
- * contradicts the calorie figure directly above it.
+ * A day with a logged supplement and no meal has intake, so the calorie and macro summary
+ * shows for it, just as it does for a day with food.
  */
 describe('DiaryScreen on a supplement-only day', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    // The summary is opt-in (Diary settings); this suite is about when it shows.
+    useAppPreferencesStore.setState({ diarySummaryVisible: true });
+  });
 
-  it('does not call the day empty when a supplement was logged', () => {
+  it('shows the summary when a supplement was logged', () => {
     mockUseDailySummary.mockReturnValue(
       summary({ ...EMPTY_SUPPLEMENT_TOTALS, calories: 15, fat: 1.5 })
     );
     renderDiary();
 
+    expect(screen.getByText('Summary')).toBeTruthy();
     expect(screen.queryByText('Add Food')).toBeNull();
   });
 
   // A magnesium or vitamin D supplement carries nothing in any fixed field, because those
-  // nutrients have no fixed column: only six catalog entries do. The whole arm reads zero
-  // and the day presents as empty under a calorie figure that is not (#2145).
-  it('does not call the day empty for a supplement carrying only custom nutrients', () => {
+  // nutrients have no fixed column: only six catalog entries do. The day still has intake
+  // (#2145).
+  it('shows the summary for a supplement carrying only custom nutrients', () => {
     mockUseDailySummary.mockReturnValue(
       summary({
         ...EMPTY_SUPPLEMENT_TOTALS,
@@ -212,14 +217,14 @@ describe('DiaryScreen on a supplement-only day', () => {
     );
     renderDiary();
 
-    expect(screen.queryByText('Add Food')).toBeNull();
+    expect(screen.getByText('Summary')).toBeTruthy();
   });
 
-  it('still shows the empty day when nothing at all was logged', () => {
-    // The other half of the rule: zero supplement totals must not defeat the empty state.
+  it('leaves the summary out when nothing at all was logged', () => {
     mockUseDailySummary.mockReturnValue(summary(EMPTY_SUPPLEMENT_TOTALS));
     renderDiary();
 
-    expect(screen.getByText('Add Food')).toBeTruthy();
+    expect(screen.queryByText('Summary')).toBeNull();
+    expect(screen.getByTestId('diary-food-card')).toBeTruthy();
   });
 });
