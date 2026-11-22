@@ -30,6 +30,7 @@ import {
   type ProviderConfig,
 } from '../ai/providerDispatch.js';
 import {
+  anthropicWebSearchVersion,
   detectRejectedParam,
   recordRejectedParam,
   supportsTemperature,
@@ -1017,16 +1018,33 @@ const RETENTION_24H_MODEL_PREFIXES = [
 // which older compatible gateways may not recognize as system instructions.
 // Anthropic gets top-level automatic caching (see buildChatSystem); Gemini
 // auto-caches.
-function buildFoodResearchTool(
+// Up to this many searches per chat turn, so one food question cannot run up
+// Anthropic's per-search fee.
+const CLAUDE_WEB_SEARCH_MAX_USES = 5;
+
+export function buildFoodResearchTool(
   serviceType: string,
   modelName: string,
   apiKey?: string | null
 ) {
-  return serviceType === 'openai' && isGpt6Model(modelName)
-    ? createOpenAI({ apiKey: apiKey ?? undefined }).tools.webSearch({
-        searchContextSize: 'high',
-      })
-    : undefined;
+  if (serviceType === 'openai' && isGpt6Model(modelName)) {
+    return createOpenAI({ apiKey: apiKey ?? undefined }).tools.webSearch({
+      searchContextSize: 'high',
+    });
+  }
+  if (serviceType === 'anthropic') {
+    const version = anthropicWebSearchVersion(modelName);
+    if (!version) return undefined;
+    const anthropic = createAnthropic({ apiKey: apiKey ?? undefined });
+    return version === 'web_search_20260209'
+      ? anthropic.tools.webSearch_20260209({
+          maxUses: CLAUDE_WEB_SEARCH_MAX_USES,
+        })
+      : anthropic.tools.webSearch_20250305({
+          maxUses: CLAUDE_WEB_SEARCH_MAX_USES,
+        });
+  }
+  return undefined;
 }
 
 export function buildChatProviderOptions(
