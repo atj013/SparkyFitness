@@ -1577,7 +1577,9 @@
     "tiles": {
       "noValue": "—",
       "weight": "Weight",
-      "weightChange": "{{change}} in 7 days",
+      "weight7Days": "7 days",
+      "weight30Days": "30 days",
+      "weightAllTime": "All time",
       "weightA11y": "Weight {{value}}. Open weight trend",
       "steps": "Steps",
       "stepsOfGoal": "{{percent}}% of {{goal}}",

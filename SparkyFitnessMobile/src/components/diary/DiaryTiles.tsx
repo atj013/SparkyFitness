@@ -1,15 +1,7 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
-import Svg, {
-  Circle,
-  ClipPath,
-  Defs,
-  G,
-  Path,
-  Polyline,
-  Rect,
-} from 'react-native-svg';
+import Svg, { Circle, ClipPath, Defs, G, Path, Rect } from 'react-native-svg';
 import { useCSSVariable } from 'uniwind';
 import { getDueDosesForDate } from '@workspace/shared';
 
@@ -17,6 +9,7 @@ import Icon from '../Icon';
 import { formatLocalizedNumber } from '../../localization';
 import { useLatestMeasurementsOnOrBefore } from '../../hooks/useMeasurements';
 import { useMeasurementsRange } from '../../hooks/useMeasurementsRange';
+import { useWeightHistory } from '../../hooks/useWeightHistory';
 import { useHydrationRange } from '../../hooks/useHydrationRange';
 import {
   useDeleteMedicationEntry,
@@ -24,7 +17,8 @@ import {
   useMedicationEntries,
   useMedications,
 } from '../../hooks/useMedications';
-import { getDeviceTimezone, addDays } from '../../utils/dateUtils';
+import { getDeviceTimezone } from '../../utils/dateUtils';
+import { computeWeightChanges } from '../../utils/weightChanges';
 import { doseSlotStatus } from '../../utils/medications';
 import { selectPrnMedications } from '../../utils/medicationAdherence';
 import {
@@ -73,56 +67,46 @@ export const WeightTile: React.FC<WeightTileProps> = ({
   onPress,
 }) => {
   const { t } = useTranslation();
-  const lineColor = useCSSVariable('--color-calories') as string;
   const { latestMeasurements } = useLatestMeasurementsOnOrBefore({
     date,
     enabled,
   });
-  const { weightData } = useMeasurementsRange({ range: '30d', enabled });
+  const { weights } = useWeightHistory({ enabled });
 
   const latestKg = Number(latestMeasurements?.weight);
   const hasWeight = Number.isFinite(latestKg) && latestKg > 0;
   const chartUnit: 'kg' | 'lbs' = weightMode === 'kg' ? 'kg' : 'lbs';
+  const changes = useMemo(
+    () => computeWeightChanges(weights, date),
+    [weights, date]
+  );
 
-  // The change over the last 7 days of weigh-ins: the newest one against the
-  // newest one at least a week older.
-  const change = useMemo(() => {
-    const last = weightData[weightData.length - 1];
-    if (!last) return null;
-    const weekBefore = addDays(last.day, -7);
-    const earlier = [...weightData].reverse().find((p) => p.day <= weekBefore);
-    if (!earlier) return null;
-    return weightFromKg(last.weight - earlier.weight, chartUnit);
-  }, [weightData, chartUnit]);
-
-  const sparkPoints = useMemo(() => {
-    const points = weightData.slice(-14);
-    if (points.length < 2) return null;
-    const values = points.map((p) => p.weight);
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-    const span = max - min || 1;
-    return points
-      .map(
-        (p, i) =>
-          `${((i / (points.length - 1)) * 118 + 1).toFixed(1)},${(
-            3 +
-            ((max - p.weight) / span) * 24
-          ).toFixed(1)}`
-      )
-      .join(' ');
-  }, [weightData]);
-
-  const changeText =
-    change === null
-      ? null
-      : t('diary.tiles.weightChange', {
-          defaultValue: '{{change}} in 7 days',
-          change: `${change > 0 ? '+' : change < 0 ? '−' : ''}${formatLocalizedNumber(
-            Math.abs(change),
-            { maximumFractionDigits: 1 }
-          )} ${chartUnit === 'kg' ? 'kg' : 'lb'}`,
-        });
+  const formatChange = (kg: number | null) => {
+    if (kg === null) return t('diary.tiles.noValue', { defaultValue: '—' });
+    const value = weightFromKg(kg, chartUnit);
+    const rounded = Math.round(value * 10) / 10;
+    const sign = rounded > 0 ? '+' : rounded < 0 ? '−' : '';
+    return `${sign}${formatLocalizedNumber(Math.abs(rounded), {
+      maximumFractionDigits: 1,
+    })} ${chartUnit === 'kg' ? 'kg' : 'lb'}`;
+  };
+  const rows = [
+    {
+      key: 'week',
+      label: t('diary.tiles.weight7Days', { defaultValue: '7 days' }),
+      value: formatChange(changes.week),
+    },
+    {
+      key: 'month',
+      label: t('diary.tiles.weight30Days', { defaultValue: '30 days' }),
+      value: formatChange(changes.month),
+    },
+    {
+      key: 'allTime',
+      label: t('diary.tiles.weightAllTime', { defaultValue: 'All time' }),
+      value: formatChange(changes.allTime),
+    },
+  ];
 
   return (
     <Pressable
@@ -141,30 +125,24 @@ export const WeightTile: React.FC<WeightTileProps> = ({
           ? formatWeightDisplay(latestKg, weightMode)
           : t('diary.tiles.noValue', { defaultValue: '—' })}
       </Text>
-      {changeText ? (
-        <Text className="text-xs text-text-secondary" numberOfLines={1}>
-          {changeText}
-        </Text>
-      ) : null}
-      <View className="flex-1 justify-end mt-1">
-        {sparkPoints ? (
-          <Svg
-            width="100%"
-            height={30}
-            viewBox="0 0 120 30"
-            preserveAspectRatio="none"
+      <View className="flex-1 justify-end gap-px mt-0.5">
+        {rows.map((row) => (
+          <View
+            key={row.key}
+            className="flex-row items-baseline justify-between"
+            testID={`diary-weight-change-${row.key}`}
           >
-            <Polyline
-              points={sparkPoints}
-              fill="none"
-              stroke={lineColor}
-              strokeWidth={2}
-              strokeLinejoin="round"
-              strokeLinecap="round"
-              vectorEffect="non-scaling-stroke"
-            />
-          </Svg>
-        ) : null}
+            <Text className="text-xs text-text-secondary" numberOfLines={1}>
+              {row.label}
+            </Text>
+            <Text
+              className="text-xs font-semibold text-text-primary"
+              numberOfLines={1}
+            >
+              {row.value}
+            </Text>
+          </View>
+        ))}
       </View>
     </Pressable>
   );
