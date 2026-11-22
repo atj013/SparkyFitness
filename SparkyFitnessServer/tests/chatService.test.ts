@@ -6,6 +6,7 @@ import type { UIMessageChunk } from 'ai';
 import chatService, {
   mapUsageToMetadata,
   buildChatStopConditions,
+  buildFoodResearchTool,
 } from '../services/chatService.js';
 import { ASK_USER_TOOL_NAME } from '@workspace/shared';
 import chatRepository from '../models/chatRepository.js';
@@ -1962,5 +1963,31 @@ describe('chatService', () => {
       expect(text).not.toContain('tool_calls');
       expect(text).toContain('"finish_reason":"stop"');
     });
+  });
+});
+
+describe('buildFoodResearchTool', () => {
+  const idOf = (built: unknown) => (built as { id?: string } | undefined)?.id;
+
+  it('gives Claude Sonnet 5.5 the dynamic-filtering web search', () => {
+    expect(
+      idOf(buildFoodResearchTool('anthropic', 'claude-sonnet-5-5', 'k'))
+    ).toBe('anthropic.web_search_20260209');
+  });
+
+  it('gives Claude Haiku 5.5 the basic web search', () => {
+    expect(
+      idOf(buildFoodResearchTool('anthropic', 'claude-haiku-5-5', 'k'))
+    ).toBe('anthropic.web_search_20250305');
+  });
+
+  it('gives no web search to Claude models without it, or to other services', () => {
+    expect(
+      buildFoodResearchTool('anthropic', 'claude-3-haiku-20240307', 'k')
+    ).toBeUndefined();
+    expect(
+      buildFoodResearchTool('google', 'gemini-3-pro', 'k')
+    ).toBeUndefined();
+    expect(buildFoodResearchTool('openai', 'gpt-4o', 'k')).toBeUndefined();
   });
 });
