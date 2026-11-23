@@ -30,7 +30,7 @@ const DiarySleepCard: React.FC<DiarySleepCardProps> = ({ entry, onPress }) => {
   const { t } = useTranslation();
   const entryClockTime = useEntryClockTime();
   const [accent, textSecondary, ...stageColors] = useCSSVariable([
-    '--color-accent-primary',
+    '--color-diary-sleep',
     '--color-text-secondary',
     '--color-cat-teal',
     '--color-cat-blue',
@@ -75,7 +75,7 @@ const DiarySleepCard: React.FC<DiarySleepCardProps> = ({ entry, onPress }) => {
     >
       <View className="flex-row items-center gap-1.5">
         <Icon name="sleep-bedtime" size={14} color={accent} />
-        <Text className="text-xs font-bold text-text-secondary flex-1">
+        <Text className="text-xs font-bold text-diary-sleep flex-1">
           {t('diary.sleep.title', { defaultValue: 'Sleep' })}
         </Text>
         {entry.sleep_score != null ? (

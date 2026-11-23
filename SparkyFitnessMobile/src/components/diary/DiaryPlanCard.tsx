@@ -42,7 +42,10 @@ const DiaryPlanCard: React.FC<DiaryPlanCardProps> = ({
   onStart,
 }) => {
   const { t } = useTranslation();
-  const accentPrimary = useCSSVariable('--color-accent-primary') as string;
+  const [planColor, onPlanColor] = useCSSVariable([
+    '--color-diary-plan',
+    '--color-diary-on',
+  ]) as string[];
   const { appLocale, presentation } = useCalendarPresentation();
   const weekdayLetters = useMemo(
     () => getCalendarWeekdayShortNames(appLocale, 'narrow'),
@@ -104,7 +107,7 @@ const DiaryPlanCard: React.FC<DiaryPlanCardProps> = ({
                 <Icon
                   name={sequential ? 'repeat' : 'calendar'}
                   size={13}
-                  color={accentPrimary}
+                  color={planColor}
                 />
                 <Text
                   className="text-xs font-semibold text-text-secondary flex-1"
@@ -155,15 +158,15 @@ const DiaryPlanCard: React.FC<DiaryPlanCardProps> = ({
                         }`}
                         style={
                           dayDone
-                            ? { backgroundColor: accentPrimary }
+                            ? { backgroundColor: planColor }
                             : isToday
-                              ? { borderColor: accentPrimary }
+                              ? { borderColor: planColor }
                               : undefined
                         }
                       >
                         <Text
                           className={`text-[9px] font-bold ${
-                            dayDone ? 'text-white' : 'text-text-secondary'
+                            dayDone ? 'text-diary-on' : 'text-text-secondary'
                           }`}
                         >
                           {weekdayLetters[weekday]}
@@ -183,19 +186,19 @@ const DiaryPlanCard: React.FC<DiaryPlanCardProps> = ({
                   session: sessionTitle,
                 })}
                 className="h-10 px-3.5 rounded-lg flex-row items-center gap-1.5 active:opacity-80"
-                style={{ backgroundColor: accentPrimary }}
+                style={{ backgroundColor: planColor }}
               >
-                <Icon name="play" size={13} color="#ffffff" />
-                <Text className="text-white text-sm font-bold">
+                <Icon name="play" size={13} color={onPlanColor} />
+                <Text className="text-diary-on text-sm font-bold">
                   {t('exerciseSummary.startWorkout', { defaultValue: 'Start' })}
                 </Text>
               </Pressable>
             ) : done ? (
               <View
                 className="h-10 w-10 rounded-full items-center justify-center"
-                style={{ backgroundColor: accentPrimary }}
+                style={{ backgroundColor: planColor }}
               >
-                <Icon name="checkmark" size={18} color="#ffffff" />
+                <Icon name="checkmark" size={18} color={onPlanColor} />
               </View>
             ) : null}
           </View>

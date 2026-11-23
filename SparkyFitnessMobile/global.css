@@ -105,6 +105,18 @@
 
       --color-date-past: hsl(20, 90%, 50%);
       --color-date-future: hsl(200, 90%, 50%);
+
+      /* Diary cards (color-coded): one color per card for its title, icons,
+         buttons and bars. Light shades pass 4.5:1 against white, so they
+         carry white text (--color-diary-on). */
+      --color-diary-food: hsl(17, 88%, 40%);
+      --color-diary-sleep: hsl(243, 75%, 59%);
+      --color-diary-plan: hsl(142, 72%, 29%);
+      --color-diary-weight: hsl(175, 77%, 26%);
+      --color-diary-steps: hsl(26, 90%, 37%);
+      --color-diary-water: hsl(201, 96%, 32%);
+      --color-diary-meds: hsl(336, 74%, 42%);
+      --color-diary-on: hsl(0, 0%, 100%);
     }
 
     @variant dark {
@@ -192,6 +204,16 @@
 
       --color-date-past: hsl(20, 85%, 60%);
       --color-date-future: hsl(200, 80%, 65%);
+
+      /* Diary cards: bright shades on dark cards, dark ink on top. */
+      --color-diary-food: hsl(27, 96%, 61%);
+      --color-diary-sleep: hsl(234, 89%, 74%);
+      --color-diary-plan: hsl(142, 69%, 58%);
+      --color-diary-weight: hsl(172, 66%, 50%);
+      --color-diary-steps: hsl(43, 96%, 56%);
+      --color-diary-water: hsl(198, 93%, 60%);
+      --color-diary-meds: hsl(330, 81%, 70%);
+      --color-diary-on: hsl(220, 25%, 6%);
     }
 
     @variant amoled {
@@ -278,6 +300,16 @@
 
       --color-date-past: hsl(20, 85%, 60%);
       --color-date-future: hsl(200, 80%, 65%);
+
+      /* Diary cards: bright shades on dark cards, dark ink on top. */
+      --color-diary-food: hsl(27, 96%, 61%);
+      --color-diary-sleep: hsl(234, 89%, 74%);
+      --color-diary-plan: hsl(142, 69%, 58%);
+      --color-diary-weight: hsl(172, 66%, 50%);
+      --color-diary-steps: hsl(43, 96%, 56%);
+      --color-diary-water: hsl(198, 93%, 60%);
+      --color-diary-meds: hsl(330, 81%, 70%);
+      --color-diary-on: hsl(220, 25%, 6%);
     }
   }
 }

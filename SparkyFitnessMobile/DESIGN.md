@@ -140,6 +140,21 @@ Eight balanced hues for things that need a distinct color but no fixed meaning. 
 | Past-Date Orange | `--color-date-past` (JS only)           | #F2590D   | #F07C42  | Date pill tint when viewing a day before today  |
 | Future-Date Sky  | `--color-date-future` (JS only)         | #0DA6F2   | #5EBEED  | Date pill tint when viewing a day after today   |
 
+### Diary cards
+
+The Diary's first screen is color-coded: each card has its own color for its title, icons, buttons and bars. The light shades are dark enough for white text; the dark shades are bright and carry Diary Ink (near-black). AMOLED uses the Dark values.
+
+| Role         | Token class            | Light hex | Dark hex | Usage                                                                      |
+| ------------ | ---------------------- | --------- | -------- | -------------------------------------------------------------------------- |
+| Diary Food   | `--color-diary-food`   | #C03F0C   | #FB923C  | Food card title and add button                                             |
+| Diary Sleep  | `--color-diary-sleep`  | #5048E5   | #828DF8  | Sleep card title and icon (the stage bar keeps the sleep stage colors)     |
+| Diary Plan   | `--color-diary-plan`   | #157F3C   | #4ADE80  | Workout plan card icon, Start button, done check, week day rings and fills |
+| Diary Weight | `--color-diary-weight` | #0F756D   | #2BD4BD  | Weight tile title and the 7-day, 30-day and all-time changes               |
+| Diary Steps  | `--color-diary-steps`  | #B35309   | #FBBD23  | Steps tile title and week bars                                             |
+| Diary Water  | `--color-diary-water`  | #0369A0   | #3ABFF8  | Water tile title, cup fill, − icon and + button                            |
+| Diary Meds   | `--color-diary-meds`   | #BA1C5B   | #F075B3  | Meds tile title, dose icons and taken fill                                 |
+| Diary Ink    | `--color-diary-on`     | #FFFFFF   | #0B0E13  | Text and icons on a filled Diary card color (add, Start, +, taken dose)    |
+
 ### Sport tints
 
 The training calendar and the Load by Sport card colour each sport group with its own token, so the calendar marks, the stacked bars and their legend always agree. AMOLED uses the Dark values. Planned-item status on the calendar reuses existing tokens rather than adding new ones: done is Success Glyph (`--color-icon-success`), partly done is Warning Glyph (`--color-icon-warning`), missed is Danger Glyph (`--color-icon-danger`), upcoming is Muted Slate (`--color-text-muted`) and extra work is Sparky Blue (`--color-accent-primary`).
@@ -155,7 +170,7 @@ The training calendar and the Load by Sport card colour each sport group with it
 
 ### AMOLED differences
 
-AMOLED uses the Dark values for 54 of the 67 color tokens. Only these 13 change:
+AMOLED uses the Dark values for 62 of the 75 color tokens. Only these 13 change:
 
 | Token                    | AMOLED hex             | Dark hex |
 | ------------------------ | ---------------------- | -------- |
@@ -177,6 +192,7 @@ AMOLED uses the Dark values for 54 of the 67 color tokens. Only these 13 change:
 
 - Use semantic tokens only. A new color goes into `SparkyFitnessMobile/global.css` in all three theme blocks (`@variant light`, `dark`, `amoled`) before any component uses it.
 - Metric mapping: calories use Calorie Indigo; protein, carbs, fat and fiber use the macro tokens, with ring arcs in the order protein, carbs, fat; hydration uses Hydration Steel Blue; training load uses Exercise Mint; watch heart rate and active energy use their own tokens; personal records use PR Gold. Sleep stages are awake orange, REM violet, light blue and deep teal. RPE runs easy green (Success Glyph), moderate amber, hard orange, max red (Danger Glyph). Fasting stages run accent, orange, pink, violet, indigo. Trend charts (steps, weight trend, VO2 max, caffeine) draw their main series in Sparky Blue.
+- Diary cards use their own `--color-diary-*` color, not Sparky Blue, for titles, icons, buttons and bars; filled controls carry `--color-diary-on`, never a fixed white, because the dark shades need dark ink. Elsewhere the metric mapping above still applies.
 - Status colors come in pairs: a wash with its ink (`bg-bg-success` + `text-text-success`, warning, info, `bg-bg-danger-subtle` + `text-text-danger-subtle`), or the solid red fill with near-white ink (`bg-bg-danger` + `text-text-danger`). Ink tokens are only legible on their wash: in Dark and AMOLED, Success, Warning, Info and Danger Ink are 86–91% lightness and read near-white (pale pink for danger) on a card. For standalone status text, dots or icons, use the `icon-*` glyph colors. A destructive text button uses `text-icon-danger`, because Danger Ink turns pale pink and Danger Fill maroon in dark themes.
 - Opacity modifiers on token, white and black classes are uncommon (95 in total; another 69 sit on Tailwind palette classes, mostly in mindfulness and symptoms, see section 8). Most are accent tints (`bg-accent-primary/5`, `/10`, `/15`, `/20`; 35), softened borders (`border-border/30`, `/40`, `/50`; 21), `border-accent-primary/20` and `/40` (6) and black scrims (`bg-black/40` to `/70`; 19). The rest are one-offs: white overlays on photos and camera (`text-white/70`, `/80`, `bg-white/10`, `/20`, `border-white/20`), muted dots (`bg-text-muted/40`), translucent surfaces (`bg-surface/40`, `/50`, `bg-raised/60`, `bg-background/80`), `border-border-subtle/50`, and `bg-surface-elevated/60`, which renders nothing (section 8). The date pill uses its tint at 12% for the fill and 35% for the 1px border.
 - Legitimate fixed colors that do not follow the theme: white text and icons on accent or red fills, and the white switch thumb; white or black controls over camera feeds and photos; black scrims; shadow color `#000`; a white backdrop behind transparent exercise illustrations; the constant pale-mint completion check (#EBFAF1); the eight share-card ink presets; the iOS Live Activity layouts; Google's night style for the Android route map.

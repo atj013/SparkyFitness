@@ -41,7 +41,10 @@ const DiaryFoodCard: React.FC<DiaryFoodCardProps> = ({
 }) => {
   const { t } = useTranslation();
   const energyUnit = useEnergyUnit();
-  const accentPrimary = useCSSVariable('--color-accent-primary') as string;
+  const [cardColor, onCardColor] = useCSSVariable([
+    '--color-diary-food',
+    '--color-diary-on',
+  ]) as string[];
 
   const rows = useMemo(
     () =>
@@ -66,7 +69,7 @@ const DiaryFoodCard: React.FC<DiaryFoodCardProps> = ({
     >
       <View className="flex-row items-center h-11 pl-3 border-b border-border-subtle">
         <View className="flex-1 flex-row items-baseline gap-2">
-          <Text className="text-md font-bold text-text-secondary">
+          <Text className="text-md font-bold text-diary-food">
             {t('diary.food.title', { defaultValue: 'Food' })}
           </Text>
           {rows.length > 0 ? (
@@ -94,9 +97,9 @@ const DiaryFoodCard: React.FC<DiaryFoodCardProps> = ({
         >
           <View
             className="w-7 h-7 rounded-full items-center justify-center"
-            style={{ backgroundColor: accentPrimary }}
+            style={{ backgroundColor: cardColor }}
           >
-            <Icon name="add" size={18} color="#ffffff" />
+            <Icon name="add" size={18} color={onCardColor} />
           </View>
         </Pressable>
       </View>

@@ -36,14 +36,23 @@ import {
 
 const TILE_CLASS = 'flex-1 bg-surface rounded-xl shadow-sm px-2.5 py-2';
 
-const TileTitle: React.FC<{ title: string; chevron?: boolean }> = ({
-  title,
-  chevron = true,
-}) => {
+// Each tile's title is in its own Diary card color. Pass the whole class
+// name (never build it from parts) so Tailwind can see it.
+type TileTitleColor =
+  | 'text-diary-weight'
+  | 'text-diary-steps'
+  | 'text-diary-water'
+  | 'text-diary-meds';
+
+const TileTitle: React.FC<{
+  title: string;
+  colorClass: TileTitleColor;
+  chevron?: boolean;
+}> = ({ title, colorClass, chevron = true }) => {
   const textSecondary = useCSSVariable('--color-text-secondary') as string;
   return (
     <View className="flex-row items-center justify-between">
-      <Text className="text-xs font-bold text-text-secondary">{title}</Text>
+      <Text className={`text-xs font-bold ${colorClass}`}>{title}</Text>
       {chevron ? (
         <Icon name="chevron-forward" size={13} color={textSecondary} />
       ) : null}
@@ -119,7 +128,10 @@ export const WeightTile: React.FC<WeightTileProps> = ({
       className={`${TILE_CLASS} gap-0.5`}
       testID="diary-weight-tile"
     >
-      <TileTitle title={t('diary.tiles.weight', { defaultValue: 'Weight' })} />
+      <TileTitle
+        title={t('diary.tiles.weight', { defaultValue: 'Weight' })}
+        colorClass="text-diary-weight"
+      />
       <Text className="text-lg font-bold text-text-primary" numberOfLines={1}>
         {hasWeight
           ? formatWeightDisplay(latestKg, weightMode)
@@ -136,7 +148,7 @@ export const WeightTile: React.FC<WeightTileProps> = ({
               {row.label}
             </Text>
             <Text
-              className="text-xs font-semibold text-text-primary"
+              className="text-xs font-semibold text-diary-weight"
               numberOfLines={1}
             >
               {row.value}
@@ -167,7 +179,7 @@ export const StepsTile: React.FC<StepsTileProps> = ({
 }) => {
   const { t } = useTranslation();
   const [accent, trackColor] = useCSSVariable([
-    '--color-accent-primary',
+    '--color-diary-steps',
     '--color-progress-track',
   ]) as [string, string];
   const { stepsData } = useMeasurementsRange({ range: '30d', enabled });
@@ -187,7 +199,10 @@ export const StepsTile: React.FC<StepsTileProps> = ({
       className={`${TILE_CLASS} gap-0.5`}
       testID="diary-steps-tile"
     >
-      <TileTitle title={t('diary.tiles.steps', { defaultValue: 'Steps' })} />
+      <TileTitle
+        title={t('diary.tiles.steps', { defaultValue: 'Steps' })}
+        colorClass="text-diary-steps"
+      />
       <Text className="text-lg font-bold text-text-primary" numberOfLines={1}>
         {formatLocalizedNumber(value)}
       </Text>
@@ -250,11 +265,12 @@ export const WaterTile: React.FC<WaterTileProps> = ({
   disableDecrement,
 }) => {
   const { t } = useTranslation();
-  const [hydration, track, border] = useCSSVariable([
-    '--color-hydration',
+  const [hydration, onHydration, track, border] = useCSSVariable([
+    '--color-diary-water',
+    '--color-diary-on',
     '--color-progress-track',
     '--color-border-strong',
-  ]) as [string, string, string];
+  ]) as [string, string, string, string];
   const { hydrationData } = useHydrationRange({ range: '7d', enabled });
   const unitLabel = WATER_UNIT_LABELS[unit] ?? unit;
   const show = (ml: number) =>
@@ -285,6 +301,7 @@ export const WaterTile: React.FC<WaterTileProps> = ({
         <View className="flex-1 gap-0.5">
           <TileTitle
             title={t('diary.tiles.water', { defaultValue: 'Water' })}
+            colorClass="text-diary-water"
             chevron
           />
           <Text
@@ -367,7 +384,7 @@ export const WaterTile: React.FC<WaterTileProps> = ({
             style={{ backgroundColor: hydration }}
             testID="diary-water-increment"
           >
-            <Icon name="add" size={18} color="#ffffff" />
+            <Icon name="add" size={18} color={onHydration} />
           </Pressable>
         </View>
       ) : null}
@@ -432,9 +449,9 @@ export const MedsTile: React.FC<MedsTileProps> = ({
   onPressTitle,
 }) => {
   const { t } = useTranslation();
-  const [accent, inkMuted, ringColor, emptyFill] = useCSSVariable([
-    '--color-accent-primary',
-    '--color-text-secondary',
+  const [accent, onAccent, ringColor, emptyFill] = useCSSVariable([
+    '--color-diary-meds',
+    '--color-diary-on',
     '--color-border-strong',
     '--color-background',
   ]) as [string, string, string, string];
@@ -510,11 +527,14 @@ export const MedsTile: React.FC<MedsTileProps> = ({
           defaultValue: 'Open medications',
         })}
       >
-        <TileTitle title={t('diary.tiles.meds', { defaultValue: 'Meds' })} />
+        <TileTitle
+          title={t('diary.tiles.meds', { defaultValue: 'Meds' })}
+          colorClass="text-diary-meds"
+        />
       </Pressable>
       <View className="flex-1 flex-row items-center justify-around">
         {slots.map((slot) => {
-          const ink = slot.taken ? '#ffffff' : inkMuted;
+          const ink = slot.taken ? onAccent : accent;
           return (
             <Pressable
               key={slot.key}
