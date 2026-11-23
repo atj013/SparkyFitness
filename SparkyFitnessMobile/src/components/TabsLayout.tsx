@@ -31,12 +31,10 @@ import { useConfirmedVerticalBar } from '../hooks/useVerticalBar';
 import { useHeaderActionColors } from '../hooks/useHeaderActionColors';
 import { useTranslation } from 'react-i18next';
 
-export const NON_ADD_TABS = [
-  'Dashboard',
-  'Diary',
-  'Library',
-  'Settings',
-] as const;
+// Dashboard is not a visible tab on this fork: it stays mounted out of sight
+// (lazy: false) so the jobs it hosts keep running — widget updates, fasting
+// and hydration reminders, background water sync.
+export const NON_ADD_TABS = ['Diary', 'Library', 'Settings'] as const;
 export type NonAddTabName = (typeof NON_ADD_TABS)[number];
 const ADD_TAB_ICON: AppleIcon = { sfSymbol: 'plus' };
 
@@ -298,7 +296,7 @@ export function NativeTabsLayout({
       <NativeTab.Navigator
         // Start on the last active tab so toggling the Liquid Glass tab bar —
         // which swaps and remounts this navigator — keeps the user on the tab
-        // they came from. Defaults to Dashboard on a cold start.
+        // they came from. Defaults to Diary on a cold start.
         initialRouteName={getLastActiveTab()}
         tabBarActiveTintColor={activeTintColor}
         tabBarInactiveTintColor={inactiveTintColor}
@@ -311,17 +309,6 @@ export function NativeTabsLayout({
           },
         }}
       >
-        <NativeTab.Screen
-          name="Dashboard"
-          component={DashboardStackScreen}
-          options={{
-            tabBarLabel: t('navigation.dashboard', {
-              defaultValue: 'Dashboard',
-            }),
-            tabBarIcon: () =>
-              ({ sfSymbol: 'square.grid.2x2.fill' }) as unknown as AppleIcon,
-          }}
-        />
         <NativeTab.Screen
           name="Diary"
           component={DiaryStackScreen}
@@ -347,6 +334,19 @@ export function NativeTabsLayout({
             tabBarLabel: t('navigation.settings', { defaultValue: 'Settings' }),
             tabBarIcon: () =>
               ({ sfSymbol: 'gearshape.fill' }) as unknown as AppleIcon,
+          }}
+        />
+        <NativeTab.Screen
+          name="Dashboard"
+          component={DashboardStackScreen}
+          options={{
+            tabBarLabel: t('navigation.dashboard', {
+              defaultValue: 'Dashboard',
+            }),
+            tabBarIcon: () =>
+              ({ sfSymbol: 'square.grid.2x2.fill' }) as unknown as AppleIcon,
+            tabBarItemHidden: true,
+            lazy: false,
           }}
         />
         {/* Last on purpose: the search-role tab is the detached button at the
@@ -386,7 +386,7 @@ export function FallbackTabsLayout({
     <FallbackTab.Navigator
       // Start on the last active tab so toggling the Liquid Glass tab bar —
       // which swaps and remounts this navigator — keeps the user on the tab
-      // they came from. Defaults to Dashboard on a cold start.
+      // they came from. Defaults to Diary on a cold start.
       initialRouteName={getLastActiveTab()}
       screenListeners={{
         state: (event) => {
@@ -407,16 +407,6 @@ export function FallbackTabsLayout({
         </View>
       )}
     >
-      <FallbackTab.Screen
-        name="Dashboard"
-        component={SafeDashboard}
-        options={{
-          tabBarLabel: t('navigation.dashboard', { defaultValue: 'Dashboard' }),
-          tabBarAccessibilityLabel: t('navigation.dashboard', {
-            defaultValue: 'Dashboard',
-          }),
-        }}
-      />
       <FallbackTab.Screen
         name="Diary"
         component={SafeDiary}
@@ -462,6 +452,18 @@ export function FallbackTabsLayout({
           tabBarAccessibilityLabel: t('navigation.settings', {
             defaultValue: 'Settings',
           }),
+        }}
+      />
+      <FallbackTab.Screen
+        name="Dashboard"
+        component={SafeDashboard}
+        options={{
+          tabBarLabel: t('navigation.dashboard', { defaultValue: 'Dashboard' }),
+          tabBarAccessibilityLabel: t('navigation.dashboard', {
+            defaultValue: 'Dashboard',
+          }),
+          tabBarItemStyle: { display: 'none' },
+          lazy: false,
         }}
       />
     </FallbackTab.Navigator>

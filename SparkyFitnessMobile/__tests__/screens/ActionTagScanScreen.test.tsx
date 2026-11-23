@@ -140,7 +140,7 @@ describe('ActionTagScanScreen', () => {
     renderScreen();
     await waitFor(() =>
       expect(navigation.replace).toHaveBeenCalledWith('Tabs', {
-        screen: 'Dashboard',
+        screen: 'Diary',
       })
     );
   });

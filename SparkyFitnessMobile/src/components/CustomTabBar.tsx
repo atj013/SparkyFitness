@@ -49,6 +49,10 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({
     >
       {state.routes.map((route, index) => {
         const { options } = descriptors[route.key];
+        // A tab hidden the standard React Navigation way gets no button.
+        if (StyleSheet.flatten(options.tabBarItemStyle)?.display === 'none') {
+          return null;
+        }
         const isFocused = state.index === index;
         const isAddButton = route.name === 'Add';
 

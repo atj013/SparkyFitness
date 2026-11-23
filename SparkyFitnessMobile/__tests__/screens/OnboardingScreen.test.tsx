@@ -341,7 +341,7 @@ describe('OnboardingScreen', () => {
           })
         );
         expect(mockReplace).toHaveBeenCalledWith('Tabs', {
-          screen: 'Dashboard',
+          screen: 'Diary',
         });
       });
     });
@@ -384,7 +384,7 @@ describe('OnboardingScreen', () => {
           })
         );
         expect(mockReplace).toHaveBeenCalledWith('Tabs', {
-          screen: 'Dashboard',
+          screen: 'Diary',
         });
       });
     });

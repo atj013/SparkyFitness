@@ -118,7 +118,7 @@ export function useAddSheetActions({
   presentCopyFromYesterday,
 }: AddSheetActionsArgs) {
   const { t } = useTranslation();
-  const lastActiveTabRef = useRef<NonAddTabName>('Dashboard');
+  const lastActiveTabRef = useRef<NonAddTabName>('Diary');
   const addSheetDismissNavigationTimeoutRef = useRef<ReturnType<
     typeof setTimeout
   > | null>(null);

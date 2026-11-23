@@ -183,7 +183,7 @@ export default function OnboardingScreen({ navigation }: Props) {
   const finishWithConnection = () => {
     void markCurrentVersionSeen();
     queryClient.invalidateQueries({ queryKey: serverConnectionQueryKey });
-    navigation.replace('Tabs', { screen: 'Dashboard' });
+    navigation.replace('Tabs', { screen: 'Diary' });
   };
 
   // --- Page 1: Next handler ---

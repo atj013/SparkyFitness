@@ -521,10 +521,11 @@ function AppContent() {
       screens: {
         Tabs: {
           screens: {
-            Dashboard: '',
-            // The Android Calories left Quick Settings tile and the wider
-            // widgets' Diary shortcut open the diary.
-            Diary: 'diary',
+            // The app opens on the diary (Dashboard is a hidden tab on this
+            // fork); the Android Calories left Quick Settings tile and the
+            // wider widgets' Diary shortcut use 'diary'.
+            Dashboard: 'dashboard',
+            Diary: { path: '', alias: ['diary'] },
           },
         },
         FoodScan: 'scan',

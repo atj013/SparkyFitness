@@ -45,7 +45,7 @@ const ActionTagScanScreen: React.FC<ActionTagScanScreenProps> = ({
     if (navigation.canGoBack()) {
       navigation.goBack();
     } else {
-      navigation.replace('Tabs', { screen: 'Dashboard' });
+      navigation.replace('Tabs', { screen: 'Diary' });
     }
   }, [navigation]);
 

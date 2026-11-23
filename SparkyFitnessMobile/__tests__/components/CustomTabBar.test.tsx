@@ -74,4 +74,20 @@ describe('CustomTabBar', () => {
     });
     expect(props.navigation.navigate).not.toHaveBeenCalled();
   });
+
+  it('draws no button for a tab hidden with display none', () => {
+    const props = createProps();
+    props.descriptors['Dashboard-key'].options = {
+      title: 'Dashboard',
+      tabBarItemStyle: { display: 'none' },
+    };
+    const screen = render(
+      <SafeAreaProvider initialMetrics={{ insets, frame }}>
+        <CustomTabBar {...props} />
+      </SafeAreaProvider>
+    );
+
+    expect(screen.queryByLabelText('Dashboard')).toBeNull();
+    expect(screen.getByLabelText('Diary')).toBeTruthy();
+  });
 });
