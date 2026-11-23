@@ -37,11 +37,20 @@ export function getUncompletedActivePlans(
   plans: readonly WorkoutPlanTemplate[],
   loggedAssignmentIds: ReadonlySet<string>
 ): WorkoutPlanTemplate[] {
-  return plans.filter((plan) => {
-    if (!plan.next_assignment) return false;
-    const planAssignmentIds = (plan.assignments || []).map((a) => String(a.id));
-    return !planAssignmentIds.some((id) => loggedAssignmentIds.has(id));
-  });
+  return plans.filter(
+    (plan) =>
+      plan.next_assignment != null && !isPlanLogged(plan, loggedAssignmentIds)
+  );
+}
+
+/** Whether one of the plan's sessions is among the logged assignments. */
+export function isPlanLogged(
+  plan: WorkoutPlanTemplate,
+  loggedAssignmentIds: ReadonlySet<string>
+): boolean {
+  return (plan.assignments || []).some((a) =>
+    loggedAssignmentIds.has(String(a.id))
+  );
 }
 
 /** What a plan has due now: the sequential plan's current session, or

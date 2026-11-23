@@ -1566,7 +1566,11 @@
     },
     "plan": {
       "position": "{{plan}} • {{position}}",
-      "startA11y": "Start {{session}}"
+      "startA11y": "Start {{session}}",
+      "doneToday": "Done today",
+      "nothingToday": "Nothing planned today",
+      "weekA11y_one": "{{count}} workout day this week",
+      "weekA11y_other": "{{count}} workout days this week"
     },
     "sleep": {
       "title": "Sleep",

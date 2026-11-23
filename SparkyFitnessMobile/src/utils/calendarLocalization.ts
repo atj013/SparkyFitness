@@ -31,7 +31,7 @@ export interface CalendarPresentation {
  */
 export function getCalendarWeekdayShortNames(
   appLocale: string,
-  style: 'short' | 'long' = 'short'
+  style: 'narrow' | 'short' | 'long' = 'short'
 ): string[] {
   const base = new Date(2026, 0, 4); // a Sunday
   return Array.from({ length: 7 }, (_, i) =>
