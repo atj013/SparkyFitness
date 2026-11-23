@@ -69,34 +69,36 @@ const DiarySleepCard: React.FC<DiarySleepCardProps> = ({ entry, onPress }) => {
         duration,
         range,
       })}
-      className="bg-surface rounded-xl shadow-sm px-3 py-2 justify-center gap-1"
+      className="bg-surface rounded-xl shadow-sm px-3.5 pt-3.5 pb-4 justify-center gap-2"
       style={{ flexGrow: 1, flexBasis: 0, minHeight: 64 }}
       testID="diary-sleep-card"
     >
       <View className="flex-row items-center gap-1.5">
-        <Icon name="sleep-bedtime" size={14} color={accent} />
-        <Text className="text-xs font-bold text-diary-sleep flex-1">
+        <Icon name="sleep-bedtime" size={20} color={accent} />
+        <Text className="text-[15px] font-semibold text-diary-sleep flex-1">
           {t('diary.sleep.title', { defaultValue: 'Sleep' })}
         </Text>
         {entry.sleep_score != null ? (
-          <Text className="text-xs font-semibold text-text-secondary">
+          <Text className="text-sm text-text-secondary">
             {t('diary.sleep.score', {
               defaultValue: 'Score {{score}}',
               score: Math.round(entry.sleep_score),
             })}
           </Text>
         ) : null}
-        <Icon name="chevron-forward" size={13} color={textSecondary} />
+        <Icon name="chevron-forward" size={18} color={textSecondary} />
       </View>
       <View className="flex-row items-baseline gap-2">
-        <Text className="text-lg font-bold text-text-primary">{duration}</Text>
+        <Text className="text-[22px] font-bold text-text-primary">
+          {duration}
+        </Text>
         {!hasTimeAsleep ? (
-          <Text className="text-xs text-text-secondary">
+          <Text className="text-[13px] text-text-secondary">
             {t('sleep.timeInBed', { defaultValue: 'Time in bed' })}
           </Text>
         ) : null}
         <Text
-          className="text-xs text-text-secondary flex-1 text-right"
+          className="text-[13px] text-text-secondary flex-1 text-right"
           numberOfLines={1}
         >
           {range}

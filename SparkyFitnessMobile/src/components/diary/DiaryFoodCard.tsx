@@ -24,7 +24,7 @@ interface DiaryFoodCardProps {
 }
 
 /** The smallest the list may get: room for three rows under the header. */
-const MIN_CARD_HEIGHT = 44 + 3 * 32;
+const MIN_CARD_HEIGHT = 56 + 3 * 32;
 
 /**
  * Every food of the day in one list, in meal order, one line each. The card
@@ -67,13 +67,13 @@ const DiaryFoodCard: React.FC<DiaryFoodCardProps> = ({
       style={{ flexGrow: 3, flexBasis: 0, minHeight: MIN_CARD_HEIGHT }}
       testID="diary-food-card"
     >
-      <View className="flex-row items-center h-11 pl-3 border-b border-border-subtle">
+      <View className="flex-row items-center h-14 pl-3.5 border-b border-border-subtle">
         <View className="flex-1 flex-row items-baseline gap-2">
-          <Text className="text-md font-bold text-diary-food">
+          <Text className="text-[17px] font-bold text-diary-food">
             {t('diary.food.title', { defaultValue: 'Food' })}
           </Text>
           {rows.length > 0 ? (
-            <Text className="text-xs text-text-secondary" numberOfLines={1}>
+            <Text className="text-[13px] text-text-secondary" numberOfLines={1}>
               {t('diary.food.count', {
                 defaultValue: '{{count}} items',
                 count: rows.length,
@@ -96,10 +96,10 @@ const DiaryFoodCard: React.FC<DiaryFoodCardProps> = ({
           testID="diary-food-add"
         >
           <View
-            className="w-7 h-7 rounded-full items-center justify-center"
+            className="w-9 h-9 rounded-full items-center justify-center"
             style={{ backgroundColor: cardColor }}
           >
-            <Icon name="add" size={18} color={onCardColor} />
+            <Icon name="add" size={20} color={onCardColor} />
           </View>
         </Pressable>
       </View>

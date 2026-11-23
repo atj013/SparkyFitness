@@ -34,7 +34,7 @@ import {
   type WeightDisplayMode,
 } from '../../utils/unitConversions';
 
-const TILE_CLASS = 'flex-1 bg-surface rounded-xl shadow-sm px-2.5 py-2';
+const TILE_CLASS = 'flex-1 bg-surface rounded-xl shadow-sm px-3 py-3';
 
 // Each tile's title is in its own Diary card color. Pass the whole class
 // name (never build it from parts) so Tailwind can see it.
@@ -52,9 +52,9 @@ const TileTitle: React.FC<{
   const textSecondary = useCSSVariable('--color-text-secondary') as string;
   return (
     <View className="flex-row items-center justify-between">
-      <Text className={`text-xs font-bold ${colorClass}`}>{title}</Text>
+      <Text className={`text-sm font-semibold ${colorClass}`}>{title}</Text>
       {chevron ? (
-        <Icon name="chevron-forward" size={13} color={textSecondary} />
+        <Icon name="chevron-forward" size={16} color={textSecondary} />
       ) : null}
     </View>
   );
@@ -132,7 +132,10 @@ export const WeightTile: React.FC<WeightTileProps> = ({
         title={t('diary.tiles.weight', { defaultValue: 'Weight' })}
         colorClass="text-diary-weight"
       />
-      <Text className="text-lg font-bold text-text-primary" numberOfLines={1}>
+      <Text
+        className="text-[21px] font-bold text-text-primary"
+        numberOfLines={1}
+      >
         {hasWeight
           ? formatWeightDisplay(latestKg, weightMode)
           : t('diary.tiles.noValue', { defaultValue: '—' })}
@@ -144,11 +147,11 @@ export const WeightTile: React.FC<WeightTileProps> = ({
             className="flex-row items-baseline justify-between"
             testID={`diary-weight-change-${row.key}`}
           >
-            <Text className="text-xs text-text-secondary" numberOfLines={1}>
+            <Text className="text-[13px] text-text-secondary" numberOfLines={1}>
               {row.label}
             </Text>
             <Text
-              className="text-xs font-semibold text-diary-weight"
+              className="text-[13px] font-semibold text-diary-weight"
               numberOfLines={1}
             >
               {row.value}
@@ -203,11 +206,14 @@ export const StepsTile: React.FC<StepsTileProps> = ({
         title={t('diary.tiles.steps', { defaultValue: 'Steps' })}
         colorClass="text-diary-steps"
       />
-      <Text className="text-lg font-bold text-text-primary" numberOfLines={1}>
+      <Text
+        className="text-[21px] font-bold text-text-primary"
+        numberOfLines={1}
+      >
         {formatLocalizedNumber(value)}
       </Text>
       {percent !== null ? (
-        <Text className="text-xs text-text-secondary" numberOfLines={1}>
+        <Text className="text-[13px] text-text-secondary" numberOfLines={1}>
           {t('diary.tiles.stepsOfGoal', {
             defaultValue: '{{percent}}% of {{goal}}',
             percent: formatLocalizedNumber(percent),
@@ -305,12 +311,12 @@ export const WaterTile: React.FC<WaterTileProps> = ({
             chevron
           />
           <Text
-            className="text-lg font-bold text-text-primary"
+            className="text-[21px] font-bold text-text-primary"
             numberOfLines={1}
           >
             {show(consumedMl)}
             {goalMl > 0 ? (
-              <Text className="text-xs font-medium text-text-secondary">
+              <Text className="text-[13px] font-medium text-text-secondary">
                 {t('diary.tiles.waterGoal', {
                   defaultValue: ' / {{goal}} {{unit}}',
                   goal: show(goalMl),
@@ -320,7 +326,7 @@ export const WaterTile: React.FC<WaterTileProps> = ({
             ) : null}
           </Text>
           {averageMl !== null ? (
-            <Text className="text-xs text-text-secondary" numberOfLines={1}>
+            <Text className="text-[13px] text-text-secondary" numberOfLines={1}>
               {t('diary.tiles.waterAverage', {
                 defaultValue: 'Avg: {{value}} {{unit}}',
                 value: show(averageMl),
@@ -550,7 +556,7 @@ export const MedsTile: React.FC<MedsTileProps> = ({
                       defaultValue: 'not taken',
                     }),
               })}
-              className="w-11 h-11 rounded-full items-center justify-center"
+              className="w-[46px] h-[46px] rounded-full items-center justify-center"
               style={
                 slot.taken
                   ? { backgroundColor: accent }

@@ -65,7 +65,7 @@ const DiaryPlanCard: React.FC<DiaryPlanCardProps> = ({
   if (plans.length === 0) return null;
 
   return (
-    <View className="bg-surface rounded-xl shadow-sm px-3 py-2 gap-2">
+    <View className="bg-surface rounded-xl shadow-sm pl-3.5 pr-2.5 py-2.5 gap-2">
       {plans.map((plan) => {
         const assignment =
           plan.next_assignment ??
@@ -106,11 +106,11 @@ const DiaryPlanCard: React.FC<DiaryPlanCardProps> = ({
               <View className="flex-row items-center gap-1.5">
                 <Icon
                   name={sequential ? 'repeat' : 'calendar'}
-                  size={13}
+                  size={16}
                   color={planColor}
                 />
                 <Text
-                  className="text-xs font-semibold text-text-secondary flex-1"
+                  className="text-[13px] font-semibold text-text-secondary flex-1"
                   numberOfLines={1}
                 >
                   {due
@@ -124,7 +124,7 @@ const DiaryPlanCard: React.FC<DiaryPlanCardProps> = ({
               </View>
               <View className="flex-row items-center gap-2">
                 <Text
-                  className="text-base font-bold text-text-primary shrink"
+                  className="text-lg font-bold text-text-primary shrink"
                   numberOfLines={1}
                 >
                   {sessionTitle}
@@ -185,11 +185,11 @@ const DiaryPlanCard: React.FC<DiaryPlanCardProps> = ({
                   defaultValue: 'Start {{session}}',
                   session: sessionTitle,
                 })}
-                className="h-10 px-3.5 rounded-lg flex-row items-center gap-1.5 active:opacity-80"
+                className="h-10 px-4 rounded-xl flex-row items-center gap-2 active:opacity-80"
                 style={{ backgroundColor: planColor }}
               >
-                <Icon name="play" size={13} color={onPlanColor} />
-                <Text className="text-diary-on text-sm font-bold">
+                <Icon name="play" size={15} color={onPlanColor} />
+                <Text className="text-diary-on text-base font-bold">
                   {t('exerciseSummary.startWorkout', { defaultValue: 'Start' })}
                 </Text>
               </Pressable>
