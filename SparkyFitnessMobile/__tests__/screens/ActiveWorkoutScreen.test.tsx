@@ -1346,6 +1346,28 @@ describe('ActiveWorkoutScreen finish success celebration', () => {
     expect(navigation.replace).toHaveBeenCalledTimes(1);
   });
 
+  it('finishes without the stamp when the server predates the session lifecycle', async () => {
+    mockGetWorkout.mockResolvedValue({ ...makeSession(), revision: undefined });
+    useActiveWorkoutStore.getState().startWorkout({
+      ...makeSession(),
+      revision: undefined,
+    } as any);
+    act(() => useActiveWorkoutStore.getState().completeSet('102'));
+    const { getByText } = renderScreen();
+
+    await endWorkout(getByText);
+
+    expect(mockGetWorkout).toHaveBeenCalledWith('session-1');
+    expect(mockUpdateWorkout).not.toHaveBeenCalled();
+    expect(alertSpy).not.toHaveBeenCalledWith(
+      'Could not mark the workout as finished',
+      expect.anything(),
+      expect.anything()
+    );
+    expect(navigation.replace).toHaveBeenCalledTimes(1);
+    expect(useActiveWorkoutStore.getState().session).toBeNull();
+  });
+
   it('replaces to WorkoutComplete with a snapshot taken before clearing the store', async () => {
     useActiveWorkoutStore.getState().startWorkout(makeSession(), {
       createdByLiveStart: true,

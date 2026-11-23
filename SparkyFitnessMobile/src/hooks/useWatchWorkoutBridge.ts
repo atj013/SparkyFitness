@@ -1016,15 +1016,17 @@ export function useWatchWorkoutBridge(
         let revision = useActiveWorkoutStore.getState().session?.revision;
         // A session restored from storage can lack the revision, and a
         // clean save never fetches it: fetch the server's current one
-        // first so the very first stamp is guarded too. Refuse rather
-        // than stamp unguarded.
+        // first so the very first stamp is guarded too.
         if (revision == null) {
           try {
             revision = (await getWorkout(payload.sessionId)).revision;
           } catch {
             return false;
           }
-          if (revision == null) return false;
+          // None from the server means a server from before the session
+          // lifecycle (the column is NOT NULL there): nothing to stamp, and
+          // the save above already delivered every set.
+          if (revision == null) return true;
         }
         for (let stampAttempt = 0; stampAttempt < 2; stampAttempt += 1) {
           try {

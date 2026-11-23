@@ -156,15 +156,18 @@ export function useActiveWorkoutFinish({
           let revision = useActiveWorkoutStore.getState().session?.revision;
           // A session restored from storage can lack the revision, and a
           // clean flush never fetches it: fetch the server's current one
-          // first so this stamp is guarded too. Refuse rather than stamp
-          // unguarded.
+          // first so this stamp is guarded too.
           if (revision == null) {
             try {
               revision = (await getWorkout(sessionId)).revision;
             } catch {
               return false;
             }
-            if (revision == null) return false;
+            // A server with the session lifecycle always returns a revision
+            // (the column is NOT NULL), so none means a server from before
+            // it: it has no finished state to stamp, and the flush above
+            // already saved every set. Finish without the stamp.
+            if (revision == null) return true;
           }
           for (let stampAttempt = 0; stampAttempt < 2; stampAttempt += 1) {
             try {

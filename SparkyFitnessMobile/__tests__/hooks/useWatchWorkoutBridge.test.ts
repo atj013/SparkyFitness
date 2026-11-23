@@ -3016,10 +3016,10 @@ describe('useWatchWorkoutBridge across sessions, failures and watch finishes', (
     expect(onWatchFinished).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps the phone workout open when the server has no revision for a restored session', async () => {
+  it('finishes without the stamp when the server predates the session lifecycle', async () => {
     const onWatchFinished = jest.fn();
     mockUpdateWorkout.mockResolvedValue(null);
-    mockGetWorkout.mockResolvedValue({ ...makeSession(), revision: null });
+    mockGetWorkout.mockResolvedValue({ ...makeSession(), revision: undefined });
     renderHook(() =>
       useWatchWorkoutBridge(true, true, undefined, onWatchFinished)
     );
@@ -3033,8 +3033,8 @@ describe('useWatchWorkoutBridge across sessions, failures and watch finishes', (
 
     expect(mockGetWorkout).toHaveBeenCalledWith('session-1');
     expect(mockUpdateWorkout).not.toHaveBeenCalled();
-    expect(getStore().sessionId).toBe('session-1');
-    expect(onWatchFinished).not.toHaveBeenCalled();
+    expect(getStore().sessionId).toBeNull();
+    expect(onWatchFinished).toHaveBeenCalledTimes(1);
   });
 
   it('does not report a watch finish for a stop the phone already handled', async () => {
