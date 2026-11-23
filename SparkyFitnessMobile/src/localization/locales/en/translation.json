@@ -1576,7 +1576,9 @@
       "title": "Sleep",
       "range": "{{start}} – {{end}}",
       "score": "Score {{score}}",
-      "a11y": "Sleep {{duration}}, {{range}}. Open sleep details"
+      "a11y": "Sleep {{duration}}, {{range}}. Open sleep details",
+      "empty": "No sleep recorded",
+      "emptyA11y": "No sleep recorded. Open sleep trends"
     },
     "tiles": {
       "noValue": "—",

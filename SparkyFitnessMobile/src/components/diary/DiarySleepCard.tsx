@@ -12,6 +12,10 @@ interface DiarySleepCardProps {
   /** The day's main sleep: the night that ended this morning. */
   entry: SleepEntry | null;
   onPress: (entry: SleepEntry) => void;
+  /** Where a tap goes on a day with no night (the sleep report). */
+  onPressEmpty: () => void;
+  /** The sleep query is still loading: hold the space without saying "none". */
+  loading?: boolean;
 }
 
 const STAGE_FIELDS = [
@@ -24,9 +28,15 @@ const STAGE_FIELDS = [
 /**
  * Last night on the Diary's first screen: how long you slept, from when to when,
  * the score when the source has one, and a thin bar of the stages. It shares the
- * Food card's room (a quarter of it) and renders nothing on a day with no night.
+ * Food card's room (a quarter of it). On a day with no night it shows the same
+ * card saying so, so the Food card above keeps one height from day to day.
  */
-const DiarySleepCard: React.FC<DiarySleepCardProps> = ({ entry, onPress }) => {
+const DiarySleepCard: React.FC<DiarySleepCardProps> = ({
+  entry,
+  onPress,
+  onPressEmpty,
+  loading = false,
+}) => {
   const { t } = useTranslation();
   const entryClockTime = useEntryClockTime();
   const [accent, textSecondary, ...stageColors] = useCSSVariable([
@@ -38,7 +48,32 @@ const DiarySleepCard: React.FC<DiarySleepCardProps> = ({ entry, onPress }) => {
     '--color-cat-orange',
   ]) as string[];
 
-  if (!entry) return null;
+  if (!entry) {
+    const empty = t('diary.sleep.empty', { defaultValue: 'No sleep recorded' });
+    return (
+      <Pressable
+        onPress={onPressEmpty}
+        accessibilityRole="button"
+        accessibilityLabel={t('diary.sleep.emptyA11y', {
+          defaultValue: 'No sleep recorded. Open sleep trends',
+        })}
+        className="bg-surface rounded-xl shadow-sm px-3.5 pt-3.5 pb-4 justify-center gap-2"
+        style={{ flexGrow: 1, flexBasis: 0, minHeight: 64 }}
+        testID="diary-sleep-card-empty"
+      >
+        <View className="flex-row items-center gap-1.5">
+          <Icon name="sleep-bedtime" size={20} color={accent} />
+          <Text className="text-[15px] font-semibold text-diary-sleep flex-1">
+            {t('diary.sleep.title', { defaultValue: 'Sleep' })}
+          </Text>
+          <Icon name="chevron-forward" size={18} color={textSecondary} />
+        </View>
+        <Text className="text-[13px] text-text-secondary">
+          {loading ? ' ' : empty}
+        </Text>
+      </Pressable>
+    );
+  }
 
   // Time asleep when the source separates it from time awake in bed, else the
   // whole span, labelled as such so it is not read as sleep.

@@ -335,6 +335,8 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ navigation }) => {
     wakeUp,
     naps,
     bedTime,
+    isLoading: isSleepLoading,
+    isForbidden: isSleepForbidden,
     refetch: refetchSleep,
   } = useSleepDay(selectedDate, { enabled: isConnected });
 
@@ -733,15 +735,20 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ navigation }) => {
             }
             onAdjustServing={(entry) => servingSheetRef.current?.present(entry)}
           />
-          <DiarySleepCard
-            entry={wakeUp}
-            onPress={(entry) =>
-              navigation.navigate('SleepDetail', {
-                entryId: entry.id,
-                day: selectedDate,
-              })
-            }
-          />
+          {/* Without permission to read sleep (a 403) the card stays off. */}
+          {!isSleepForbidden && (
+            <DiarySleepCard
+              entry={wakeUp}
+              loading={isSleepLoading}
+              onPress={(entry) =>
+                navigation.navigate('SleepDetail', {
+                  entryId: entry.id,
+                  day: selectedDate,
+                })
+              }
+              onPressEmpty={() => navigation.navigate('SleepAnalytics')}
+            />
+          )}
           <DiaryPlanCard
             date={selectedDate}
             plans={activePlans}

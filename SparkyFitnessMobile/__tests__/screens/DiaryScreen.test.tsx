@@ -751,11 +751,14 @@ describe('DiaryScreen sleep cards', () => {
     // arrived must not sit behind "Loading diary..." waiting on `/api/sleep`.
     configureSleep({ wakeUp: null, naps: [], bedTime: null, isLoading: true });
 
-    const { getByTestId, queryByTestId } = renderScreen();
+    const { getByTestId, queryByTestId, queryByText } = renderScreen();
 
     expect(queryByTestId('status-view')).toBeNull();
     expect(getByTestId('diary-food-card')).toBeTruthy();
     expect(getByTestId('diary-plan-card')).toBeTruthy();
+    // The Sleep card holds its space without claiming there is no sleep yet.
+    expect(getByTestId('diary-sleep-card-empty')).toBeTruthy();
+    expect(queryByText('diary.sleep.empty')).toBeNull();
   });
 
   test('a bed time alone shows only the bed time card', () => {
@@ -849,14 +852,16 @@ describe('DiaryScreen sleep cards', () => {
     );
   });
 
-  test('a day with no sleep data renders no sleep cards at all', () => {
+  test('a day with no sleep data keeps the Sleep card, saying there is none', () => {
     configureSleep({ wakeUp: null, naps: [], bedTime: null });
 
-    const { getByTestId, queryByTestId } = renderScreen();
+    const { getByTestId, getByText, queryByTestId } = renderScreen();
 
-    // All three hide rather than showing empty states, so a user with no sleep source
-    // sees no sleep section on the Diary.
+    // The Sleep card stays so the Food card keeps its height; naps and bedtime
+    // still hide.
     expect(queryByTestId('diary-sleep-card')).toBeNull();
+    expect(getByTestId('diary-sleep-card-empty')).toBeTruthy();
+    expect(getByText('diary.sleep.empty')).toBeTruthy();
     expect(queryByTestId('naps-card')).toBeNull();
     expect(queryByTestId('bed-time-card')).toBeNull();
     // The rest of the Diary is unaffected.
@@ -874,9 +879,19 @@ describe('DiaryScreen sleep cards', () => {
     const { queryByTestId, getByTestId } = renderScreen();
 
     expect(queryByTestId('diary-sleep-card')).toBeNull();
+    expect(queryByTestId('diary-sleep-card-empty')).toBeNull();
     expect(queryByTestId('bed-time-card')).toBeNull();
     // The rest of the Diary is unaffected.
     expect(getByTestId('diary-food-card')).toBeTruthy();
+  });
+
+  test('the empty Sleep card opens the sleep report', () => {
+    configureSleep({ wakeUp: null, naps: [], bedTime: null });
+
+    const { getByTestId } = renderScreen();
+    fireEvent.press(getByTestId('diary-sleep-card-empty'));
+
+    expect(mockNavigation.navigate).toHaveBeenCalledWith('SleepAnalytics');
   });
 
   test('pull-to-refresh refetches the sleep query alongside the others', async () => {
