@@ -15,6 +15,7 @@ import {
   useCalendarPresentation,
 } from '../../utils/calendarLocalization';
 import {
+  findLoggedSessionForPlan,
   getLoggedAssignmentIds,
   isPlanLogged,
 } from '../../utils/workoutPlanSchedule';
@@ -28,18 +29,22 @@ interface DiaryPlanCardProps {
     plan: WorkoutPlanTemplate,
     assignment: WorkoutPlanAssignment
   ) => void;
+  /** Opens the day's logged session from a plan row that is done. */
+  onOpenWorkout?: (session: ExerciseSessionResponse) => void;
 }
 
 /**
  * One line per active workout plan: today's session with Start, a tick once it
- * is logged, or a note when the plan has nothing on today. Beside the title,
- * the week's days as bubbles, filled on each day that plan's session was logged.
+ * is logged (the row then opens that workout), or a note when the plan has
+ * nothing on today. Beside the title, the week's days as bubbles, filled on
+ * each day that plan's session was logged.
  */
 const DiaryPlanCard: React.FC<DiaryPlanCardProps> = ({
   date,
   plans,
   exerciseEntries,
   onStart,
+  onOpenWorkout,
 }) => {
   const { t } = useTranslation();
   const [planColor, onPlanColor] = useCSSVariable([
@@ -96,11 +101,31 @@ const DiaryPlanCard: React.FC<DiaryPlanCardProps> = ({
           : done
             ? t('diary.plan.doneToday', 'Done today')
             : t('diary.plan.nothingToday', 'Nothing planned today');
+        const loggedSession =
+          done && onOpenWorkout
+            ? findLoggedSessionForPlan(plan, exerciseEntries)
+            : null;
         return (
-          <View
+          <Pressable
             key={plan.id}
-            className="flex-row items-center gap-3"
+            className="flex-row items-center gap-3 active:opacity-80"
             testID="diary-plan-row"
+            disabled={loggedSession == null}
+            onPress={
+              loggedSession && onOpenWorkout
+                ? () => onOpenWorkout(loggedSession)
+                : undefined
+            }
+            accessible={loggedSession != null}
+            accessibilityRole={loggedSession ? 'button' : undefined}
+            accessibilityLabel={
+              loggedSession
+                ? t('diary.plan.openA11y', {
+                    defaultValue: '{{plan}}, done today. Open the workout',
+                    plan: plan.plan_name,
+                  })
+                : undefined
+            }
           >
             <View className="flex-1 gap-0.5">
               <View className="flex-row items-center gap-1.5">
@@ -194,14 +219,19 @@ const DiaryPlanCard: React.FC<DiaryPlanCardProps> = ({
                 </Text>
               </Pressable>
             ) : done ? (
-              <View
-                className="h-10 w-10 rounded-full items-center justify-center"
-                style={{ backgroundColor: planColor }}
-              >
-                <Icon name="checkmark" size={18} color={onPlanColor} />
+              <View className="flex-row items-center gap-1">
+                <View
+                  className="h-10 w-10 rounded-full items-center justify-center"
+                  style={{ backgroundColor: planColor }}
+                >
+                  <Icon name="checkmark" size={18} color={onPlanColor} />
+                </View>
+                {loggedSession && (
+                  <Icon name="chevron-forward" size={16} color={planColor} />
+                )}
               </View>
             ) : null}
-          </View>
+          </Pressable>
         );
       })}
     </View>

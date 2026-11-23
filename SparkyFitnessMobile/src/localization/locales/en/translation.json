@@ -1568,6 +1568,7 @@
       "position": "{{plan}} • {{position}}",
       "startA11y": "Start {{session}}",
       "doneToday": "Done today",
+      "openA11y": "{{plan}}, done today. Open the workout",
       "nothingToday": "Nothing planned today",
       "weekA11y_one": "{{count}} workout day this week",
       "weekA11y_other": "{{count}} workout days this week"

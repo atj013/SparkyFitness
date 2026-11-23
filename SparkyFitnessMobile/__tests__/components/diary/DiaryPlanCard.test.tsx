@@ -1,6 +1,6 @@
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import type { ExerciseSessionResponse } from '@workspace/shared';
 
 import DiaryPlanCard from '../../../src/components/diary/DiaryPlanCard';
@@ -114,6 +114,30 @@ describe('DiaryPlanCard', () => {
       ([day]) => day
     );
     expect(fetched.sort()).toEqual(['2026-11-15', '2026-11-16', '2026-11-17']);
+  });
+
+  it('opens the logged workout from a row that is done', () => {
+    const onOpenWorkout = jest.fn();
+    const entries = session('a-wed');
+    const screen = renderCard({ exerciseEntries: entries, onOpenWorkout });
+
+    fireEvent.press(
+      screen.getByLabelText('Strength, done today. Open the workout')
+    );
+
+    expect(onOpenWorkout).toHaveBeenCalledWith(entries[0]);
+  });
+
+  it('does not open anything from a row that is still to do', () => {
+    const onOpenWorkout = jest.fn();
+    const screen = renderCard({ onOpenWorkout });
+
+    fireEvent.press(screen.getByText('Lower'));
+
+    expect(onOpenWorkout).not.toHaveBeenCalled();
+    expect(
+      screen.queryByLabelText('Strength, done today. Open the workout')
+    ).toBeNull();
   });
 
   it('offers Start while today is still to do', async () => {

@@ -754,6 +754,7 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ navigation }) => {
             plans={activePlans}
             exerciseEntries={exerciseEntries}
             onStart={handleStartPlanAssignment}
+            onOpenWorkout={openWorkout}
           />
           <View className="flex-row gap-2">
             <WeightTile

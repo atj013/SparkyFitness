@@ -4,31 +4,51 @@ import type {
   WorkoutPlanTemplate,
 } from '../types/workoutPlans';
 
+/** The plan assignments one logged session was started from. */
+function sessionAssignmentIds(session: ExerciseSessionResponse): string[] {
+  const ids: string[] = [];
+  if (
+    'workout_plan_assignment_id' in session &&
+    session.workout_plan_assignment_id != null
+  ) {
+    ids.push(String(session.workout_plan_assignment_id));
+  }
+  if ('exercises' in session && Array.isArray(session.exercises)) {
+    for (const ex of session.exercises) {
+      if (
+        ex &&
+        'workout_plan_assignment_id' in ex &&
+        ex.workout_plan_assignment_id != null
+      ) {
+        ids.push(String(ex.workout_plan_assignment_id));
+      }
+    }
+  }
+  return ids;
+}
+
 /** Plan assignments the day's diary already holds a logged session for. */
 export function getLoggedAssignmentIds(
   exerciseEntries: readonly ExerciseSessionResponse[]
 ): Set<string> {
   const ids = new Set<string>();
   for (const session of exerciseEntries) {
-    if (
-      'workout_plan_assignment_id' in session &&
-      session.workout_plan_assignment_id != null
-    ) {
-      ids.add(String(session.workout_plan_assignment_id));
-    }
-    if ('exercises' in session && Array.isArray(session.exercises)) {
-      for (const ex of session.exercises) {
-        if (
-          ex &&
-          'workout_plan_assignment_id' in ex &&
-          ex.workout_plan_assignment_id != null
-        ) {
-          ids.add(String(ex.workout_plan_assignment_id));
-        }
-      }
-    }
+    for (const id of sessionAssignmentIds(session)) ids.add(id);
   }
   return ids;
+}
+
+/** The day's logged session for one of the plan's assignments, if any. */
+export function findLoggedSessionForPlan(
+  plan: WorkoutPlanTemplate,
+  exerciseEntries: readonly ExerciseSessionResponse[]
+): ExerciseSessionResponse | null {
+  const planIds = new Set((plan.assignments || []).map((a) => String(a.id)));
+  return (
+    exerciseEntries.find((session) =>
+      sessionAssignmentIds(session).some((id) => planIds.has(id))
+    ) ?? null
+  );
 }
 
 /** Active plans with something still to do: a next assignment, and none of the
