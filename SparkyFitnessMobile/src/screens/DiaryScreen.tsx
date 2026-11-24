@@ -765,6 +765,7 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ navigation }) => {
               />
             )}
             <DiaryPlanCard
+              date={selectedDate}
               plans={activePlans}
               exerciseEntries={exerciseEntries}
               onStart={handleStartPlanAssignment}

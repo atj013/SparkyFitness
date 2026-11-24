@@ -5,10 +5,15 @@ import { useCSSVariable } from 'uniwind';
 import type { ExerciseSessionResponse } from '@workspace/shared';
 
 import Icon from '../Icon';
+import { usePlanWeekProgress } from '../../hooks/usePlanWeekProgress';
 import type {
   WorkoutPlanAssignment,
   WorkoutPlanTemplate,
 } from '../../types/workoutPlans';
+import {
+  getCalendarWeekdayShortNames,
+  useCalendarPresentation,
+} from '../../utils/calendarLocalization';
 import {
   findLoggedSessionForPlan,
   getLoggedAssignmentIds,
@@ -16,6 +21,8 @@ import {
 } from '../../utils/workoutPlanSchedule';
 
 interface DiaryPlanCardProps {
+  /** The Diary's selected day. */
+  date: string;
   plans: WorkoutPlanTemplate[];
   exerciseEntries: ExerciseSessionResponse[];
   onStart: (
@@ -30,9 +37,11 @@ interface DiaryPlanCardProps {
  * The day's planned workout as a half-width tile beside the sleep tile: one
  * line per active plan with just the session's name ("Legs") and a round
  * Start button, a tick once it is logged (the line then opens that workout),
- * or "Rest day" when the plan has nothing on.
+ * or "Rest day" when the plan has nothing on. Under it, the week's days as
+ * small bubbles, filled on each day that plan's session was logged.
  */
 const DiaryPlanCard: React.FC<DiaryPlanCardProps> = ({
+  date,
   plans,
   exerciseEntries,
   onStart,
@@ -43,6 +52,17 @@ const DiaryPlanCard: React.FC<DiaryPlanCardProps> = ({
     '--color-diary-plan',
     '--color-diary-on',
   ]) as string[];
+  const { appLocale, presentation } = useCalendarPresentation();
+  const weekdayLetters = useMemo(
+    () => getCalendarWeekdayShortNames(appLocale, 'narrow'),
+    [appLocale]
+  );
+  const week = usePlanWeekProgress(
+    date,
+    presentation.firstDayOfWeek,
+    plans,
+    exerciseEntries
+  );
   const logged = useMemo(
     () => getLoggedAssignmentIds(exerciseEntries),
     [exerciseEntries]
@@ -85,61 +105,106 @@ const DiaryPlanCard: React.FC<DiaryPlanCardProps> = ({
           done && onOpenWorkout
             ? findLoggedSessionForPlan(plan, exerciseEntries)
             : null;
+        const daysDone = week.filter((d) => d.donePlanIds.has(plan.id)).length;
         return (
-          <Pressable
-            key={plan.id}
-            className="flex-row items-center gap-2 active:opacity-80"
-            testID="diary-plan-row"
-            disabled={loggedSession == null}
-            onPress={
-              loggedSession && onOpenWorkout
-                ? () => onOpenWorkout(loggedSession)
-                : undefined
-            }
-            accessible={loggedSession != null}
-            accessibilityRole={loggedSession ? 'button' : undefined}
-            accessibilityLabel={
-              loggedSession
-                ? t('diary.plan.openA11y', {
-                    defaultValue: '{{plan}}, done today. Open the workout',
-                    plan: plan.plan_name,
-                  })
-                : undefined
-            }
-          >
-            <Text
-              className={`flex-1 ${
-                due || done
-                  ? 'text-[19px] font-bold text-text-primary'
-                  : 'text-[15px] text-text-secondary'
-              }`}
-              numberOfLines={1}
+          <View key={plan.id} className="gap-1.5">
+            <Pressable
+              className="flex-row items-center gap-2 active:opacity-80"
+              testID="diary-plan-row"
+              disabled={loggedSession == null}
+              onPress={
+                loggedSession && onOpenWorkout
+                  ? () => onOpenWorkout(loggedSession)
+                  : undefined
+              }
+              accessible={loggedSession != null}
+              accessibilityRole={loggedSession ? 'button' : undefined}
+              accessibilityLabel={
+                loggedSession
+                  ? t('diary.plan.openA11y', {
+                      defaultValue: '{{plan}}, done today. Open the workout',
+                      plan: plan.plan_name,
+                    })
+                  : undefined
+              }
             >
-              {sessionTitle}
-            </Text>
-            {due ? (
-              <Pressable
-                onPress={() => onStart(plan, assignment)}
-                accessibilityRole="button"
-                accessibilityLabel={t('diary.plan.startA11y', {
-                  defaultValue: 'Start {{session}}',
-                  session: sessionTitle,
-                })}
-                hitSlop={4}
-                className="w-9 h-9 rounded-full items-center justify-center active:opacity-80"
-                style={{ backgroundColor: planColor }}
+              <Text
+                className={`flex-1 ${
+                  due || done
+                    ? 'text-[19px] font-bold text-text-primary'
+                    : 'text-[15px] text-text-secondary'
+                }`}
+                numberOfLines={1}
               >
-                <Icon name="play" size={16} color={onPlanColor} />
-              </Pressable>
-            ) : done ? (
-              <View
-                className="w-9 h-9 rounded-full items-center justify-center"
-                style={{ backgroundColor: planColor }}
-              >
-                <Icon name="checkmark" size={18} color={onPlanColor} />
-              </View>
-            ) : null}
-          </Pressable>
+                {sessionTitle}
+              </Text>
+              {due ? (
+                <Pressable
+                  onPress={() => onStart(plan, assignment)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('diary.plan.startA11y', {
+                    defaultValue: 'Start {{session}}',
+                    session: sessionTitle,
+                  })}
+                  hitSlop={4}
+                  className="w-9 h-9 rounded-full items-center justify-center active:opacity-80"
+                  style={{ backgroundColor: planColor }}
+                >
+                  <Icon name="play" size={16} color={onPlanColor} />
+                </Pressable>
+              ) : done ? (
+                <View
+                  className="w-9 h-9 rounded-full items-center justify-center"
+                  style={{ backgroundColor: planColor }}
+                >
+                  <Icon name="checkmark" size={18} color={onPlanColor} />
+                </View>
+              ) : null}
+            </Pressable>
+            <View
+              className="flex-row justify-between"
+              accessible
+              accessibilityLabel={t('diary.plan.weekA11y', {
+                count: daysDone,
+                defaultValue: '{{count}} workout days this week',
+                defaultValue_one: '{{count}} workout day this week',
+                defaultValue_other: '{{count}} workout days this week',
+              })}
+              testID="diary-plan-week"
+            >
+              {week.map(({ day, weekday, donePlanIds, isToday }) => {
+                const dayDone = donePlanIds.has(plan.id);
+                return (
+                  <View
+                    key={day}
+                    testID={dayDone ? 'diary-plan-day-done' : 'diary-plan-day'}
+                    className={`size-4 rounded-full items-center justify-center ${
+                      dayDone
+                        ? ''
+                        : isToday
+                          ? 'border-2'
+                          : 'border border-border-strong'
+                    }`}
+                    style={
+                      dayDone
+                        ? { backgroundColor: planColor }
+                        : isToday
+                          ? { borderColor: planColor }
+                          : undefined
+                    }
+                  >
+                    <Text
+                      className={`text-[8px] font-bold ${
+                        dayDone ? 'text-diary-on' : 'text-text-secondary'
+                      }`}
+                    >
+                      {weekdayLetters[weekday]}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
         );
       })}
     </View>

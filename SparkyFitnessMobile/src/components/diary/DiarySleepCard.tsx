@@ -46,10 +46,9 @@ const SleepTitle: React.FC<{ accent: string; chevron: string }> = ({
 
 /**
  * Last night as a half-width tile beside the workout tile: how long you slept,
- * the score when the source has one, and a thin bar of the stages (the times
- * are in its accessibility label and on the sleep screen). On a day with no
- * night it shows the same tile saying so, so the layout keeps one shape from
- * day to day.
+ * the score when the source has one, when you went to bed and woke up, and a
+ * thin bar of the stages. On a day with no night it shows the same tile saying
+ * so, so the layout keeps one shape from day to day.
  */
 const DiarySleepCard: React.FC<DiarySleepCardProps> = ({
   entry,
@@ -147,6 +146,9 @@ const DiarySleepCard: React.FC<DiarySleepCardProps> = ({
           </Text>
         ) : null}
       </View>
+      <Text className="text-[12px] text-text-secondary" numberOfLines={1}>
+        {range}
+      </Text>
       {stageTotal > 0 ? (
         <View
           className="flex-row h-1.5 rounded-full overflow-hidden mt-0.5"
