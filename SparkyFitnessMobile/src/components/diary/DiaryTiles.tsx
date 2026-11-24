@@ -5,12 +5,14 @@ import Svg, { Circle, ClipPath, Defs, G, Path, Rect } from 'react-native-svg';
 import { useCSSVariable } from 'uniwind';
 import {
   addDays,
+  dayOfWeek,
   getDueDosesForDate,
   type IndividualSessionResponse,
 } from '@workspace/shared';
 
 import Icon from '../Icon';
-import { formatLocalizedNumber } from '../../localization';
+import { formatLocalizedNumber, useAppLocale } from '../../localization';
+import { getCalendarWeekdayShortNames } from '../../utils/calendarLocalization';
 import { useLatestMeasurementsOnOrBefore } from '../../hooks/useMeasurements';
 import { useMeasurementsRange } from '../../hooks/useMeasurementsRange';
 import { useWeightHistory } from '../../hooks/useWeightHistory';
@@ -49,7 +51,7 @@ import {
 const TILE_CLASS = 'flex-1 bg-surface rounded-xl shadow-sm px-3 py-3';
 // Steps is one short card the width of the Diary, under the food card.
 const WIDE_TILE_CLASS = 'bg-surface rounded-xl shadow-sm px-3 py-2';
-const STEP_BAR_MAX_HEIGHT = 22;
+const STEP_BAR_MAX_HEIGHT = 30;
 /** Days looked back for the meds circles' streaks. */
 const MEDS_STREAK_DAYS = 90;
 
@@ -242,6 +244,11 @@ export const StepsTile: React.FC<StepsTileProps> = ({
     '--color-progress-track',
     '--color-text-secondary',
   ]) as [string, string, string];
+  const appLocale = useAppLocale();
+  const weekdayLetters = useMemo(
+    () => getCalendarWeekdayShortNames(appLocale, 'narrow'),
+    [appLocale]
+  );
   const { stepsData } = useMeasurementsRange({ range: '30d', enabled });
   const week = stepsData.slice(-7);
   const max = Math.max(1, goal, ...week.map((d) => d.steps));
@@ -258,25 +265,32 @@ export const StepsTile: React.FC<StepsTileProps> = ({
       className={`${WIDE_TILE_CLASS} gap-1.5`}
       testID="diary-steps-tile"
     >
-      <View className="flex-row items-center gap-3">
-        <View className="flex-1">
+      <View className="flex-row items-center gap-3.5">
+        <View className="min-w-[86px]">
           <TileTitle
             title={t('diary.tiles.steps', { defaultValue: 'Steps' })}
             colorClass="text-diary-steps"
             chevron={false}
           />
-          <View className="flex-row items-baseline gap-1.5">
-            <Text
-              className="text-[17px] font-bold text-text-primary"
-              numberOfLines={1}
-            >
-              {formatLocalizedNumber(value)}
+          <Text
+            className="text-[17px] font-bold text-text-primary"
+            numberOfLines={1}
+          >
+            {formatLocalizedNumber(value)}
+          </Text>
+          {goal > 0 ? (
+            <Text className="text-[12px] text-text-secondary" numberOfLines={1}>
+              {t('diary.tiles.stepsGoal', {
+                defaultValue: 'of {{goal}}',
+                goal: formatLocalizedNumber(goal),
+              })}
             </Text>
-          </View>
+          ) : null}
         </View>
+        {/* The last 7 days across the middle, a day letter under each. */}
         <View
-          className="flex-row items-end gap-1.5"
-          style={{ minHeight: STEP_BAR_MAX_HEIGHT }}
+          className="flex-1 flex-row items-end gap-1.5"
+          testID="diary-steps-week"
         >
           {week.map((d) => {
             const height =
@@ -285,16 +299,25 @@ export const StepsTile: React.FC<StepsTileProps> = ({
                 : 2;
             const isDay = d.day === date;
             return (
-              <View
-                key={d.day}
-                style={{
-                  width: 10,
-                  height,
-                  borderRadius: 3,
-                  backgroundColor: d.steps > 0 ? accent : trackColor,
-                  opacity: d.steps > 0 && !isDay ? 0.45 : 1,
-                }}
-              />
+              <View key={d.day} className="flex-1 items-stretch gap-0.5">
+                <View
+                  style={{
+                    height,
+                    borderRadius: 3,
+                    backgroundColor: d.steps > 0 ? accent : trackColor,
+                    opacity: d.steps > 0 && !isDay ? 0.45 : 1,
+                  }}
+                />
+                <Text
+                  className={`text-[11px] text-center ${
+                    isDay
+                      ? 'text-text-primary font-semibold'
+                      : 'text-text-muted'
+                  }`}
+                >
+                  {weekdayLetters[dayOfWeek(d.day)]}
+                </Text>
+              </View>
             );
           })}
         </View>

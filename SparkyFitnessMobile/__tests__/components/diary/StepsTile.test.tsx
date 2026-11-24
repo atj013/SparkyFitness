@@ -4,8 +4,9 @@ import { StepsTile } from '../../../src/components/diary/DiaryTiles';
 import type { DiaryMove } from '../../../src/utils/diaryWalksRuns';
 import { initializeI18n } from '../../../src/localization/i18n';
 
+let mockStepsData: { day: string; steps: number }[] = [];
 jest.mock('../../../src/hooks/useMeasurementsRange', () => ({
-  useMeasurementsRange: () => ({ stepsData: [] }),
+  useMeasurementsRange: () => ({ stepsData: mockStepsData }),
 }));
 jest.mock('../../../src/hooks/useMeasurements', () => ({
   useLatestMeasurementsOnOrBefore: jest.fn(),
@@ -48,8 +49,11 @@ beforeAll(async () => {
   await initializeI18n('en');
 });
 
-test('a day with no walk or run looks as before', () => {
+test('a day with no walk or run shows the count against the goal', () => {
   renderTile({});
+  expect(screen.getByText('8,400')).toBeTruthy();
+  expect(screen.getByText('of 10,000')).toBeTruthy();
+  expect(screen.queryByText(/%/)).toBeNull();
   expect(screen.queryByTestId('diary-steps-moves')).toBeNull();
 });
 
@@ -86,4 +90,24 @@ test('more than two become one summary that opens the day', () => {
   expect(screen.getByText('3 walks and runs · 6.5 km')).toBeTruthy();
   fireEvent.press(screen.getByTestId('diary-steps-moves-summary'));
   expect(onOpenMoves).toHaveBeenCalled();
+});
+
+test('the last 7 days run across the middle with a day letter each', () => {
+  mockStepsData = [
+    { day: '2026-11-17', steps: 6000 },
+    { day: '2026-11-18', steps: 9000 },
+    { day: '2026-11-19', steps: 4000 },
+    { day: '2026-11-20', steps: 11000 },
+    { day: '2026-11-21', steps: 7000 },
+    { day: '2026-11-22', steps: 8000 },
+    { day: '2026-11-23', steps: 8400 },
+  ];
+  renderTile({});
+  // Tuesday the 17th to Monday the 23rd.
+  const week = screen.getByTestId('diary-steps-week');
+  expect(week.children).toHaveLength(7);
+  expect(screen.getAllByText('M')).toHaveLength(1);
+  expect(screen.getAllByText('T')).toHaveLength(2);
+  expect(screen.getAllByText('S')).toHaveLength(2);
+  mockStepsData = [];
 });

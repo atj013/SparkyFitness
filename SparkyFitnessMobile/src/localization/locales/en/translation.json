@@ -1607,6 +1607,7 @@
       "weightA11y": "Weight {{value}}. Open weight trend",
       "steps": "Steps",
       "stepsOfGoal": "{{percent}}% of {{goal}}",
+      "stepsGoal": "of {{goal}}",
       "moveKm": "{{value}} km",
       "moveMiles": "{{value}} mi",
       "moveMinutes": "{{value}} min",
