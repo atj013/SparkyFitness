@@ -18,7 +18,13 @@ import React, {
   useState,
 } from 'react';
 import { useTranslation } from 'react-i18next';
-import { RefreshControl, ScrollView, Text, View } from 'react-native';
+import {
+  RefreshControl,
+  ScrollView,
+  Text,
+  View,
+  type LayoutChangeEvent,
+} from 'react-native';
 import {
   Directions,
   Gesture,
@@ -35,7 +41,9 @@ import CheckInPhotosSummary from '../components/CheckInPhotosSummary';
 import DateNavigator from '../components/DateNavigator';
 import DiaryCalorieMacroSummary from '../components/DiaryCalorieMacroSummary';
 import ExerciseSummary from '../components/ExerciseSummary';
-import DiaryFoodCard from '../components/diary/DiaryFoodCard';
+import DiaryFoodCard, {
+  MIN_FOOD_CARD_HEIGHT,
+} from '../components/diary/DiaryFoodCard';
 import DiaryPlanCard from '../components/diary/DiaryPlanCard';
 import DiarySleepCard from '../components/diary/DiarySleepCard';
 import {
@@ -516,6 +524,17 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ navigation }) => {
   // height so it fits without scrolling; the Food list takes what is left.
   const [viewportHeight, setViewportHeight] = useState(0);
   const firstScreenBottomGap = 12 + activeWorkoutBarPadding;
+  // Measured so the Food card can be given exactly the room the other cards
+  // leave: everything else keeps its own height. Rounded, and only stored on
+  // a real change, so the measure-then-size pass settles at once.
+  const [firstScreenHeight, setFirstScreenHeight] = useState(0);
+  const [foodCardHeight, setFoodCardHeight] = useState(0);
+  const storeRounded =
+    (setter: React.Dispatch<React.SetStateAction<number>>) =>
+    (e: LayoutChangeEvent) => {
+      const next = Math.round(e.nativeEvent.layout.height);
+      setter((prev) => (Math.abs(prev - next) >= 1 ? next : prev));
+    };
 
   const openWorkout = (session: ExerciseSessionResponse) => {
     if (session.type === 'preset') {
@@ -672,6 +691,17 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ navigation }) => {
       viewportHeight > 0
         ? viewportHeight - contentPaddingTop - firstScreenBottomGap - 8
         : undefined;
+    const foodHeight =
+      firstScreenMinHeight != null &&
+      firstScreenHeight > 0 &&
+      foodCardHeight > 0
+        ? Math.max(
+            MIN_FOOD_CARD_HEIGHT,
+            Math.floor(
+              firstScreenMinHeight - (firstScreenHeight - foodCardHeight)
+            )
+          )
+        : undefined;
     const showMacroSummary =
       summary.foodEntries.length > 0 ||
       hasSupplementNutrition(summary.supplementTotals) ||
@@ -717,6 +747,7 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ navigation }) => {
         <View
           className="gap-2"
           style={{ minHeight: firstScreenMinHeight }}
+          onLayout={storeRounded(setFirstScreenHeight)}
           testID="diary-first-screen"
         >
           {showMacroSummary && (
@@ -734,6 +765,8 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ navigation }) => {
               navigation.navigate('FoodSearch', { date: selectedDate })
             }
             onAdjustServing={(entry) => servingSheetRef.current?.present(entry)}
+            height={foodHeight}
+            onLayout={storeRounded(setFoodCardHeight)}
           />
           {/* Without permission to read sleep (a 403) the card stays off. */}
           {!isSleepForbidden && (
@@ -763,17 +796,6 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ navigation }) => {
               enabled={isConnected}
               onPress={() => navigation.navigate('MeasurementsReport')}
             />
-            <StepsTile
-              date={selectedDate}
-              steps={measurements?.steps}
-              goal={summary.stepsGoal}
-              enabled={isConnected}
-              onPress={() =>
-                navigation.navigate('MeasurementsReport', { range: '7d' })
-              }
-            />
-          </View>
-          <View className="flex-row gap-2">
             <WaterTile
               consumedMl={summary.waterConsumed}
               goalMl={summary.waterGoal}
@@ -785,6 +807,18 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ navigation }) => {
               onIncrement={waterIncrement}
               onDecrement={isContainersLoaded ? decrementWater : undefined}
               disableDecrement={summary.waterConsumed <= 0}
+            />
+          </View>
+          {/* Steps and Meds share a shorter last row. */}
+          <View className="flex-row gap-2">
+            <StepsTile
+              date={selectedDate}
+              steps={measurements?.steps}
+              goal={summary.stepsGoal}
+              enabled={isConnected}
+              onPress={() =>
+                navigation.navigate('MeasurementsReport', { range: '7d' })
+              }
             />
             <MedsTile
               date={selectedDate}

@@ -120,7 +120,7 @@ describe('DiaryCalorieMacroSummary', () => {
     expect(toJSON()).toBeNull();
   });
 
-  it('renders only the calorie row when collapsed (default)', () => {
+  it('renders the calorie row with the macros always shown', () => {
     useAppPreferencesStore.setState({
       diarySummaryVisible: true,
       diarySummaryExpanded: false,
@@ -135,19 +135,11 @@ describe('DiaryCalorieMacroSummary', () => {
         },
       }),
     });
-    expect(getByText('Summary')).toBeTruthy();
+    // No collapse header: the macros show even with the old collapsed flag.
+    expect(queryByText('Summary')).toBeNull();
     expect(getByText(/500 \/ 2,000 kcal/)).toBeTruthy();
     expect(getByText(/1,500/)).toBeTruthy();
     expect(getByText(/remaining/)).toBeTruthy();
-    expect(queryByText('Protein')).toBeNull();
-  });
-
-  it('reveals the macro pill grid when diarySummaryExpanded is true', () => {
-    useAppPreferencesStore.setState({
-      diarySummaryVisible: true,
-      diarySummaryExpanded: true,
-    });
-    const { getByText } = renderWidget();
     expect(getByText('Protein')).toBeTruthy();
     expect(getByText('Carbs')).toBeTruthy();
     expect(getByText('Fat')).toBeTruthy();

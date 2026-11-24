@@ -201,7 +201,7 @@ describe('DiaryScreen on a supplement-only day', () => {
     );
     renderDiary();
 
-    expect(screen.getByText('Summary')).toBeTruthy();
+    expect(screen.getByTestId('diary-summary-card')).toBeTruthy();
     expect(screen.queryByText('Add Food')).toBeNull();
   });
 
@@ -217,14 +217,14 @@ describe('DiaryScreen on a supplement-only day', () => {
     );
     renderDiary();
 
-    expect(screen.getByText('Summary')).toBeTruthy();
+    expect(screen.getByTestId('diary-summary-card')).toBeTruthy();
   });
 
   it('leaves the summary out when nothing at all was logged', () => {
     mockUseDailySummary.mockReturnValue(summary(EMPTY_SUPPLEMENT_TOTALS));
     renderDiary();
 
-    expect(screen.queryByText('Summary')).toBeNull();
+    expect(screen.queryByTestId('diary-summary-card')).toBeNull();
     expect(screen.getByTestId('diary-food-card')).toBeTruthy();
   });
 });

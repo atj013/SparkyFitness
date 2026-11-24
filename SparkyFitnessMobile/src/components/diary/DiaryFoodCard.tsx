@@ -1,6 +1,12 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import {
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+  type LayoutChangeEvent,
+} from 'react-native';
 import { useCSSVariable } from 'uniwind';
 
 import Icon from '../Icon';
@@ -21,23 +27,30 @@ interface DiaryFoodCardProps {
   mealTypes: MealType[];
   onAddFood: () => void;
   onAdjustServing?: (entry: FoodEntry) => void;
+  /** The height the Diary measured is left for the card; it is never set
+   * below MIN_FOOD_CARD_HEIGHT. Without it the card grows to fill. */
+  height?: number;
+  onLayout?: (event: LayoutChangeEvent) => void;
 }
 
-/** The smallest the list may get: room for three rows under the header. */
-const MIN_CARD_HEIGHT = 56 + 3 * 32;
+/** The smallest the list may get: room for two rows under the header, so the
+ * summary card above it fits on the first screen. */
+export const MIN_FOOD_CARD_HEIGHT = 56 + 2 * 32;
 
 /**
- * Every food of the day in one list, in meal order, one line each. The card
- * takes three quarters of the height the Diary's first screen has left (the
- * Sleep card takes the rest, or the card takes it all with no night logged) and
- * scrolls inside. Its basis is 0, so a long day never grows it past that share
- * and pushes the cards under it off the screen.
+ * Every food of the day in one list, in meal order, one line each. The Diary
+ * measures the cards around it and passes the height left on its first
+ * screen, and the list scrolls inside, so a long day never pushes the cards
+ * under it off the screen. (The first screen only has a minimum height, so a
+ * flex share alone sized the card by its rows.)
  */
 const DiaryFoodCard: React.FC<DiaryFoodCardProps> = ({
   foodEntries,
   mealTypes,
   onAddFood,
   onAdjustServing,
+  height,
+  onLayout,
 }) => {
   const { t } = useTranslation();
   const energyUnit = useEnergyUnit();
@@ -64,7 +77,12 @@ const DiaryFoodCard: React.FC<DiaryFoodCardProps> = ({
   return (
     <View
       className="bg-surface rounded-xl shadow-sm overflow-hidden"
-      style={{ flexGrow: 3, flexBasis: 0, minHeight: MIN_CARD_HEIGHT }}
+      style={
+        height != null
+          ? { height: Math.max(height, MIN_FOOD_CARD_HEIGHT) }
+          : { flexGrow: 3, flexBasis: 0, minHeight: MIN_FOOD_CARD_HEIGHT }
+      }
+      onLayout={onLayout}
       testID="diary-food-card"
     >
       <View className="flex-row items-center h-14 pl-3.5 border-b border-border-subtle">
