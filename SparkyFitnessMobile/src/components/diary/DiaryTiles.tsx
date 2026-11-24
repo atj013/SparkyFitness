@@ -487,12 +487,25 @@ export const MedsTile: React.FC<MedsTileProps> = ({
   inline = false,
 }) => {
   const { t } = useTranslation();
-  const [accent, onAccent, ringColor, emptyFill] = useCSSVariable([
-    '--color-diary-meds',
-    '--color-diary-on',
-    '--color-border-strong',
-    '--color-background',
-  ]) as [string, string, string, string];
+  const [accent, onAccent, ringColor, emptyFill, morningColor, prnColor] =
+    useCSSVariable([
+      '--color-diary-meds',
+      '--color-diary-on',
+      '--color-border-strong',
+      '--color-background',
+      '--color-diary-steps',
+      '--color-diary-plan',
+    ]) as [string, string, string, string, string, string];
+  // In the habits row each circle has its own colour, so the row is not all
+  // pink: morning amber (the sun), evening the meds pink, as-needed green.
+  const slotColor = (slot: DiaryMedsSlot) =>
+    !inline
+      ? accent
+      : slot.key === 'morning'
+        ? morningColor
+        : slot.key === 'asNeeded'
+          ? prnColor
+          : accent;
 
   const { data: medications, isLoading: isLoadingMeds } = useMedications({
     activeOnly: true,
@@ -581,14 +594,17 @@ export const MedsTile: React.FC<MedsTileProps> = ({
     });
   const slotStyle = (slot: DiaryMedsSlot) =>
     slot.taken
-      ? { backgroundColor: accent }
-      : {
-          backgroundColor: emptyFill,
-          borderWidth: 1.5,
-          borderColor: ringColor,
-        };
+      ? { backgroundColor: slotColor(slot) }
+      : inline
+        ? // Empty in the habits row: a coloured ring, like the habits.
+          { borderWidth: 2, borderColor: slotColor(slot) }
+        : {
+            backgroundColor: emptyFill,
+            borderWidth: 1.5,
+            borderColor: ringColor,
+          };
   const slotIcon = (slot: DiaryMedsSlot) => {
-    const ink = slot.taken ? onAccent : accent;
+    const ink = slot.taken ? onAccent : slotColor(slot);
     return slot.key === 'morning' ? (
       <SunIcon color={ink} />
     ) : slot.key === 'evening' ? (
@@ -647,7 +663,7 @@ export const MedsTile: React.FC<MedsTileProps> = ({
               </View>
               <HabitStreak
                 streak={streak}
-                color={accent}
+                color={slotColor(slot)}
                 hidden={slot.key === 'asNeeded'}
               />
             </Pressable>

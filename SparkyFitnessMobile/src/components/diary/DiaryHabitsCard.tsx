@@ -49,7 +49,7 @@ const HABITS: {
 }[] = [
   { key: 'brush', icon: 'oral-care', colorVar: '--color-diary-water' },
   { key: 'meditate', icon: 'meditation', colorVar: '--color-diary-sleep' },
-  { key: 'skincare', icon: 'skincare', colorVar: '--color-diary-meds' },
+  { key: 'skincare', icon: 'skincare', colorVar: '--color-diary-weight' },
 ];
 
 /**
