@@ -736,7 +736,11 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ navigation }) => {
             foodEntries={summary.foodEntries}
             macros={
               showMacroSummary && diarySummaryVisible
-                ? { protein: summary.protein, fiber: summary.fiber }
+                ? {
+                    calories: summary.calorieBalance.eaten,
+                    protein: summary.protein,
+                    fiber: summary.fiber,
+                  }
                 : undefined
             }
             mealTypes={mealTypes}

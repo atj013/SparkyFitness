@@ -31,8 +31,13 @@ interface DiaryFoodCardProps {
    * below MIN_FOOD_CARD_HEIGHT. Without it the card grows to fill. */
   height?: number;
   onLayout?: (event: LayoutChangeEvent) => void;
-  /** The day's protein and fiber, shown beside the title; absent hides them. */
-  macros?: { protein: MacroAmount; fiber: MacroAmount };
+  /** The day's calories eaten (kcal), protein and fiber, shown beside the
+   * title as three columns; absent hides them. */
+  macros?: {
+    calories: number;
+    protein: MacroAmount;
+    fiber: MacroAmount;
+  };
 }
 
 interface MacroAmount {
@@ -40,35 +45,26 @@ interface MacroAmount {
   goal: number;
 }
 
-/** One macro in the header: its name in its color, then the amount. */
-const HeaderMacro: React.FC<{
+/** One column in the header: the name in its color over the amount. */
+const HeaderStat: React.FC<{
   label: string;
-  amount: MacroAmount;
+  value: string;
   color: string;
-}> = ({ label, amount, color }) => {
-  const { t } = useTranslation();
-  const consumed = Math.round(amount.consumed);
-  const goal = Math.round(amount.goal);
-  return (
-    <Text className="text-[12px]" numberOfLines={1}>
-      <Text className="font-semibold" style={{ color }}>
-        {label}
-      </Text>
-      <Text className="text-text-secondary">
-        {goal > 0
-          ? t('diary.food.macroAmount', {
-              defaultValue: ' {{consumed}}/{{goal}} g',
-              consumed,
-              goal,
-            })
-          : t('diary.food.macroAmountNoGoal', {
-              defaultValue: ' {{consumed}} g',
-              consumed,
-            })}
-      </Text>
+  testID: string;
+}> = ({ label, value, color, testID }) => (
+  <View className="items-center" testID={testID}>
+    <Text
+      className="text-[11px] font-semibold"
+      style={{ color }}
+      numberOfLines={1}
+    >
+      {label}
     </Text>
-  );
-};
+    <Text className="text-[13px] font-bold text-text-primary" numberOfLines={1}>
+      {value}
+    </Text>
+  </View>
+);
 
 const HEADER_HEIGHT = 48;
 
@@ -93,12 +89,35 @@ const DiaryFoodCard: React.FC<DiaryFoodCardProps> = ({
 }) => {
   const { t } = useTranslation();
   const energyUnit = useEnergyUnit();
-  const [cardColor, onCardColor, proteinColor, fiberColor] = useCSSVariable([
-    '--color-diary-food',
-    '--color-diary-on',
-    '--color-macro-protein',
-    '--color-macro-fiber',
-  ]) as string[];
+  const [cardColor, onCardColor, caloriesColor, proteinColor, fiberColor] =
+    useCSSVariable([
+      '--color-diary-food',
+      '--color-diary-on',
+      '--color-calories',
+      '--color-macro-protein',
+      '--color-macro-fiber',
+    ]) as string[];
+
+  const gramsValue = (amount: MacroAmount) => {
+    const consumed = Math.round(amount.consumed);
+    const goal = Math.round(amount.goal);
+    return goal > 0
+      ? t('diary.food.macroAmount', {
+          defaultValue: '{{consumed}}/{{goal}} g',
+          consumed,
+          goal,
+        })
+      : t('diary.food.macroAmountNoGoal', {
+          defaultValue: '{{consumed}} g',
+          consumed,
+        });
+  };
+  const energyValue = (kcal: number) =>
+    t('diary.food.energy', {
+      defaultValue: '{{energy}} {{unit}}',
+      energy: roundedEnergy(kcal, energyUnit),
+      unit: energyUnitLabel(energyUnit, t),
+    });
 
   const rows = useMemo(
     () =>
@@ -136,52 +155,55 @@ const DiaryFoodCard: React.FC<DiaryFoodCardProps> = ({
         className="flex-row items-center pl-3.5 border-b border-border-subtle"
         style={{ height: HEADER_HEIGHT }}
       >
-        {/* One line: title, the day's calories (and the item count when the
-            macros are off), then protein and fiber; the calorie text gives
-            way first on a narrow screen. */}
-        <View className="flex-1 flex-row items-baseline gap-2">
-          <Text className="text-[17px] font-bold text-diary-food">
-            {t('diary.food.title', { defaultValue: 'Food' })}
-          </Text>
-          {rows.length > 0 ? (
-            <Text
-              className="text-[13px] text-text-secondary shrink"
-              numberOfLines={1}
-            >
-              {macros
-                ? t('diary.food.energy', {
-                    defaultValue: '{{energy}} {{unit}}',
-                    energy: roundedEnergy(totalCalories, energyUnit),
-                    unit: energyUnitLabel(energyUnit, t),
-                  })
-                : `${t('diary.food.count', {
-                    defaultValue: '{{count}} items',
-                    count: rows.length,
-                  })}${t('diary.food.energySeparator', {
-                    defaultValue: ' · {{energy}} {{unit}}',
-                    energy: roundedEnergy(totalCalories, energyUnit),
-                    unit: energyUnitLabel(energyUnit, t),
-                  })}`}
-            </Text>
-          ) : null}
-          {macros ? (
-            <View
-              className="ml-auto flex-row items-baseline gap-2.5"
-              testID="diary-food-macros"
-            >
-              <HeaderMacro
-                label={t('nutrients.protein', { defaultValue: 'Protein' })}
-                amount={macros.protein}
-                color={proteinColor}
-              />
-              <HeaderMacro
-                label={t('nutrients.fiber', { defaultValue: 'Fiber' })}
-                amount={macros.fiber}
-                color={fiberColor}
-              />
-            </View>
-          ) : null}
-        </View>
+        <Text className="text-[17px] font-bold text-diary-food">
+          {t('diary.food.title', { defaultValue: 'Food' })}
+        </Text>
+        {macros ? (
+          // Calories, protein and fiber as three evenly spaced columns, each
+          // its name in its color over the amount.
+          <View
+            className="flex-1 flex-row items-center justify-evenly"
+            testID="diary-food-macros"
+          >
+            <HeaderStat
+              label={t('nutrients.calories', { defaultValue: 'Calories' })}
+              value={energyValue(macros.calories)}
+              color={caloriesColor}
+              testID="diary-food-calories"
+            />
+            <HeaderStat
+              label={t('nutrients.protein', { defaultValue: 'Protein' })}
+              value={gramsValue(macros.protein)}
+              color={proteinColor}
+              testID="diary-food-protein"
+            />
+            <HeaderStat
+              label={t('nutrients.fiber', { defaultValue: 'Fiber' })}
+              value={gramsValue(macros.fiber)}
+              color={fiberColor}
+              testID="diary-food-fiber"
+            />
+          </View>
+        ) : (
+          <View className="flex-1 ml-2">
+            {rows.length > 0 ? (
+              <Text
+                className="text-[13px] text-text-secondary"
+                numberOfLines={1}
+              >
+                {t('diary.food.count', {
+                  defaultValue: '{{count}} items',
+                  count: rows.length,
+                })}
+                {t('diary.food.energySeparator', {
+                  defaultValue: ' · {{energy}} {{unit}}',
+                  energy: roundedEnergy(totalCalories, energyUnit),
+                  unit: energyUnitLabel(energyUnit, t),
+                })}
+              </Text>
+            ) : null}
+          </View>
+        )}
         <Pressable
           onPress={onAddFood}
           accessibilityRole="button"

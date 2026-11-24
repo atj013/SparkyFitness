@@ -1563,8 +1563,8 @@
       "count_other": "{{count}} items",
       "energySeparator": " · {{energy}} {{unit}}",
       "energy": "{{energy}} {{unit}}",
-      "macroAmount": " {{consumed}}/{{goal}} g",
-      "macroAmountNoGoal": " {{consumed}} g",
+      "macroAmount": "{{consumed}}/{{goal}} g",
+      "macroAmountNoGoal": "{{consumed}} g",
       "add": "Add food"
     },
     "plan": {
