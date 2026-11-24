@@ -1,14 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, Text } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useDerivedValue,
-  useAnimatedStyle,
-  withTiming,
-  Easing,
-} from 'react-native-reanimated';
-import { useIsFocused } from '@react-navigation/native';
+import { View } from 'react-native';
 import { useCSSVariable } from 'uniwind';
 
 import NutrientPill from './NutrientPill';
@@ -17,148 +9,8 @@ import { getNetCarbsValue } from '../utils/nutrientUtils';
 import { NUTRIENT_META, getNutrientLabel } from '../constants/nutrients';
 import type { DailySummary } from '../types/dailySummary';
 import type { UserCustomNutrient } from '../hooks/useCustomNutrients';
-import { useEnergyUnit } from '../hooks/useEnergyUnit';
-import { energyUnitLabel, formatEnergyNumber } from '../utils/energyUnit';
 
 const CORE_MACROS = ['protein', 'carbs', 'fat', 'dietary_fiber'] as const;
-
-interface CalorieBarProps {
-  eaten: number;
-  goal: number;
-  remaining: number;
-  progressPercent: number;
-}
-
-const CalorieBar: React.FC<CalorieBarProps> = ({
-  eaten,
-  goal,
-  remaining,
-  progressPercent,
-}) => {
-  const { t } = useTranslation();
-  const energyUnit = useEnergyUnit();
-  const [barWidth, setBarWidth] = useState(0);
-  const [trackColor, fillColor] = useCSSVariable([
-    '--color-progress-track',
-    '--color-calories',
-  ]) as [string, string];
-  const barHeight = 7;
-  const borderRadius = 3.5;
-  const hasGoal = goal > 0;
-
-  const animatedProgress = useSharedValue(0);
-  const isFocused = useIsFocused();
-  useEffect(() => {
-    if (!isFocused) return;
-    animatedProgress.value = 0;
-    animatedProgress.value = withTiming(hasGoal ? progressPercent : 0, {
-      duration: 500,
-      easing: Easing.out(Easing.cubic),
-    });
-  }, [isFocused, hasGoal, progressPercent, animatedProgress]);
-
-  const fillWidth = useDerivedValue(() => {
-    const p = animatedProgress.value;
-    if (p <= 0 || barWidth <= 0) return 0;
-    return p > 1 ? barWidth / p : barWidth * p;
-  }, [barWidth]);
-
-  const overflowX = useDerivedValue(() => {
-    const p = animatedProgress.value;
-    if (p <= 1 || barWidth <= 0) return barWidth;
-    return barWidth / p + 2;
-  }, [barWidth]);
-
-  const overflowWidth = useDerivedValue(() => {
-    const p = animatedProgress.value;
-    if (p <= 1 || barWidth <= 0) return 0;
-    const gapStart = barWidth / p + 2;
-    return Math.max(0, barWidth - gapStart);
-  }, [barWidth]);
-
-  const fillStyle = useAnimatedStyle(() => ({ width: fillWidth.value }));
-  const overflowStyle = useAnimatedStyle(() => ({
-    left: overflowX.value,
-    width: overflowWidth.value,
-  }));
-
-  return (
-    <View>
-      <View className="flex-row justify-between items-baseline mb-2">
-        <Text className="text-lg font-bold text-text-primary">
-          {formatEnergyNumber(eaten, energyUnit)}
-          {hasGoal && (
-            <Text className="text-lg font-semibold text-text-muted">
-              {/* i18n-audit-ignore-next-line hardcoded-ui-text -- slash and spacing are numeric presentation punctuation. */}
-              {t('nutrition.goalSeparator', {
-                defaultValue: ' / {{value}}',
-                value: formatEnergyNumber(goal, energyUnit),
-              })}
-            </Text>
-          )}
-          <Text className="text-sm font-normal text-text-muted">
-            {' '}
-            {energyUnitLabel(energyUnit, t)}
-          </Text>
-        </Text>
-        {hasGoal && (
-          <Text className="text-sm font-bold text-text-primary">
-            {formatEnergyNumber(Math.abs(remaining), energyUnit)}
-            <Text className="text-sm font-normal text-text-muted">
-              {' '}
-              {remaining >= 0
-                ? t('diarySummary.remaining', { defaultValue: 'remaining' })
-                : t('diarySummary.over', { defaultValue: 'over' })}
-            </Text>
-          </Text>
-        )}
-      </View>
-      {hasGoal && (
-        <View
-          className="h-[7px]"
-          onLayout={(e) => setBarWidth(e.nativeEvent.layout.width)}
-        >
-          {barWidth > 0 && (
-            <View
-              style={{
-                width: barWidth,
-                height: barHeight,
-                borderRadius,
-                overflow: 'hidden',
-                backgroundColor: trackColor,
-              }}
-            >
-              <Animated.View
-                style={[
-                  {
-                    position: 'absolute',
-                    left: 0,
-                    top: 0,
-                    height: barHeight,
-                    backgroundColor: fillColor,
-                  },
-                  fillStyle,
-                ]}
-              />
-              <Animated.View
-                style={[
-                  {
-                    position: 'absolute',
-                    top: 0,
-                    height: barHeight,
-                    backgroundColor: fillColor,
-                    opacity: 0.65,
-                  },
-                  overflowStyle,
-                ]}
-              />
-            </View>
-          )}
-        </View>
-      )}
-    </View>
-  );
-};
 
 interface DiaryCalorieMacroSummaryProps {
   summary: DailySummary;
@@ -168,6 +20,11 @@ interface DiaryCalorieMacroSummaryProps {
   customNutrients: UserCustomNutrient[];
 }
 
+/**
+ * The day's macros (and any chosen custom nutrients) in one tight card above
+ * the Diary's food list. Calories are left out: the Food card's header
+ * already gives the day's total, and the room goes to the food list.
+ */
 const DiaryCalorieMacroSummary: React.FC<DiaryCalorieMacroSummaryProps> = ({
   summary,
   showNetCarbs,
@@ -175,7 +32,6 @@ const DiaryCalorieMacroSummary: React.FC<DiaryCalorieMacroSummaryProps> = ({
   customNutrients,
 }) => {
   const { t } = useTranslation();
-  const energyUnit = useEnergyUnit();
   const diarySummaryVisible = useAppPreferencesStore(
     (s) => s.diarySummaryVisible
   );
@@ -195,29 +51,6 @@ const DiaryCalorieMacroSummary: React.FC<DiaryCalorieMacroSummaryProps> = ({
   if (!diarySummaryVisible) {
     return null;
   }
-
-  const { eaten, goal, remaining, progress } = summary.calorieBalance;
-  const projection = summary.calorieBalance.tdeeProjection;
-  // "High day +250 kcal" when calorie cycling moved today's goal (#2327).
-  const cycling = summary.calorieCycling;
-  const cyclingAmount =
-    cycling?.status === 'active' && cycling.delta !== 0
-      ? formatEnergyNumber(Math.abs(cycling.delta), energyUnit)
-      : null;
-  const cyclingUnit = energyUnitLabel(energyUnit, t);
-  const cyclingLabel = !cyclingAmount
-    ? null
-    : (cycling?.delta ?? 0) > 0
-      ? t('diarySummary.cycling.highDay', {
-          defaultValue: 'High day +{{amount}} {{unit}}',
-          amount: cyclingAmount,
-          unit: cyclingUnit,
-        })
-      : t('diarySummary.cycling.lowDay', {
-          defaultValue: 'Low day −{{amount}} {{unit}}',
-          amount: cyclingAmount,
-          unit: cyclingUnit,
-        });
 
   const resolveCoreMacro = (key: (typeof CORE_MACROS)[number]) => {
     if (key === 'protein') {
@@ -253,94 +86,42 @@ const DiaryCalorieMacroSummary: React.FC<DiaryCalorieMacroSummaryProps> = ({
     };
   };
 
-  // A compact card on the Diary's first screen: calories, then the macros
-  // always shown (no collapse), so the day's totals sit above the food list.
   return (
     <View
-      className="bg-surface rounded-xl shadow-sm px-3.5 py-2.5"
+      className="bg-surface rounded-xl shadow-sm p-2 flex-row flex-wrap justify-between gap-y-2"
       testID="diary-summary-card"
     >
-      {cyclingLabel && (
-        <Text
-          className="text-xs font-semibold text-accent-primary mb-1"
-          testID="calorie-cycling-label"
-        >
-          {cyclingLabel}
-        </Text>
-      )}
-      <CalorieBar
-        eaten={eaten}
-        goal={goal > 0 ? eaten + remaining : 0}
-        remaining={remaining}
-        progressPercent={progress / 100}
-      />
-      {projection && (
-        <View className="mt-2 rounded-lg bg-surface px-3 py-2">
-          <Text className="text-xs font-semibold text-text-primary">
-            {t('diarySummary.projectedTdeeWithUnit', {
-              defaultValue: 'Projected TDEE: {{value}} {{unit}}',
-              value: formatEnergyNumber(projection.projectedBurn, energyUnit),
-              unit: energyUnitLabel(energyUnit, t),
-            })}
-          </Text>
-          <Text className="text-xs text-text-secondary mt-0.5">
-            {t('diarySummary.goalModeTargetWithUnit', {
-              defaultValue: 'Goal Mode target: {{value}} {{unit}}',
-              value: formatEnergyNumber(
-                projection.targetCalories ?? goal,
-                energyUnit
-              ),
-              unit: energyUnitLabel(energyUnit, t),
-            })}
-          </Text>
-          <Text className="text-xs text-text-muted mt-0.5">
-            {projection.source === 'health_connect_total'
-              ? t('diarySummary.healthConnectProjectionSource', {
-                  defaultValue: 'Device total calories',
-                })
-              : projection.source === 'active_plus_bmr'
-                ? t('diarySummary.fallbackProjectionSource', {
-                    defaultValue: 'BMR + active calories fallback',
-                  })
-                : t('diarySummary.legacyProjectionSource', {
-                    defaultValue: 'Device projection',
-                  })}
-          </Text>
-        </View>
-      )}
-      <View className="flex-row flex-wrap justify-between gap-y-2 mt-2.5">
-        {CORE_MACROS.map((key) => {
-          const { label, consumed, goal: macroGoal } = resolveCoreMacro(key);
-          return (
-            <NutrientPill
-              key={key}
-              label={label}
-              consumed={consumed}
-              goal={macroGoal}
-              progressColor={macroColor[key]}
-            />
-          );
-        })}
-        {customNutrientKeys.map((name) => {
-          const customDef = customNutrients.find((cn) => cn.name === name);
-          const meta = NUTRIENT_META[name];
-          const label = meta
-            ? getNutrientLabel(t, name)
-            : (customDef?.name ?? name);
-          const unit = meta?.unit ?? customDef?.unit ?? 'g';
-          const consumed = summary.customNutrientTotals[name] ?? 0;
-          const nutrientGoal = summary.customNutrientGoals[name] || undefined;
-          return (
-            <NutrientPill
-              key={name}
-              label={label}
-              consumed={consumed}
-              goal={nutrientGoal}
-              unit={unit}
-            />
-          );
-        })}
-      </View>
+      {CORE_MACROS.map((key) => {
+        const { label, consumed, goal: macroGoal } = resolveCoreMacro(key);
+        return (
+          <NutrientPill
+            key={key}
+            label={label}
+            consumed={consumed}
+            goal={macroGoal}
+            progressColor={macroColor[key]}
+          />
+        );
+      })}
+      {customNutrientKeys.map((name) => {
+        const customDef = customNutrients.find((cn) => cn.name === name);
+        const meta = NUTRIENT_META[name];
+        const label = meta
+          ? getNutrientLabel(t, name)
+          : (customDef?.name ?? name);
+        const unit = meta?.unit ?? customDef?.unit ?? 'g';
+        const consumed = summary.customNutrientTotals[name] ?? 0;
+        const nutrientGoal = summary.customNutrientGoals[name] || undefined;
+        return (
+          <NutrientPill
+            key={name}
+            label={label}
+            consumed={consumed}
+            goal={nutrientGoal}
+            unit={unit}
+          />
+        );
+      })}
     </View>
   );
 };

@@ -72,190 +72,31 @@ describe('DiaryCalorieMacroSummary', () => {
     __resetAppPreferencesStoreForTests();
   });
 
-  it('shows the food budget including credited activity beside eaten calories', () => {
-    useAppPreferencesStore.setState({ diarySummaryVisible: true });
-    const { getByText } = renderWidget({
-      summary: buildSummary({
-        calorieBalance: {
-          ...buildSummary().calorieBalance,
-          eaten: 1225,
-          goal: 1800,
-          burned: 681,
-          remaining: 1256,
-          progress: 49,
-        },
-      }),
-    });
-    expect(getByText(/1,225 \/ 2,481 kcal/)).toBeTruthy();
-    expect(getByText(/1,256/)).toBeTruthy();
-  });
-
-  it('labels a calorie cycling high day, and nothing when cycling is off', () => {
-    useAppPreferencesStore.setState({ diarySummaryVisible: true });
-    const high = renderWidget({
-      summary: buildSummary({
-        calorieCycling: {
-          status: 'active',
-          baseTarget: 2000,
-          target: 2250,
-          delta: 250,
-          dayType: 'high',
-          floor: 1500,
-          clampedToFloor: false,
-        },
-      }),
-    });
-    expect(high.getByTestId('calorie-cycling-label')).toHaveTextContent(
-      'High day +250 kcal'
-    );
-    high.unmount();
-
-    const off = renderWidget();
-    expect(off.queryByTestId('calorie-cycling-label')).toBeNull();
-  });
-
   it('renders nothing when diarySummaryVisible is off', () => {
     useAppPreferencesStore.setState({ diarySummaryVisible: false });
     const { toJSON } = renderWidget();
     expect(toJSON()).toBeNull();
   });
 
-  it('renders the calorie row with the macros always shown', () => {
-    useAppPreferencesStore.setState({
-      diarySummaryVisible: true,
-      diarySummaryExpanded: false,
-    });
+  it('shows the four macros and no calorie row', () => {
+    useAppPreferencesStore.setState({ diarySummaryVisible: true });
     const { getByText, queryByText } = renderWidget({
       summary: buildSummary({
+        protein: { consumed: 51, goal: 150 },
         calorieBalance: {
           ...buildSummary().calorieBalance,
           eaten: 500,
-          goal: 2000,
           remaining: 1500,
         },
       }),
     });
-    // No collapse header: the macros show even with the old collapsed flag.
-    expect(queryByText('Summary')).toBeNull();
-    expect(getByText(/500 \/ 2,000 kcal/)).toBeTruthy();
-    expect(getByText(/1,500/)).toBeTruthy();
-    expect(getByText(/remaining/)).toBeTruthy();
     expect(getByText('Protein')).toBeTruthy();
+    expect(getByText('51g / 150g')).toBeTruthy();
     expect(getByText('Carbs')).toBeTruthy();
     expect(getByText('Fat')).toBeTruthy();
     expect(getByText('Fiber')).toBeTruthy();
-  });
-
-  it('shows "over" instead of "remaining" when remaining is negative', () => {
-    useAppPreferencesStore.setState({
-      diarySummaryVisible: true,
-      diarySummaryExpanded: false,
-    });
-    const { getByText } = renderWidget({
-      summary: buildSummary({
-        calorieBalance: {
-          ...buildSummary().calorieBalance,
-          eaten: 2500,
-          goal: 2000,
-          remaining: -500,
-        },
-      }),
-    });
-    expect(getByText(/over/)).toBeTruthy();
-  });
-
-  it('uses calorieBalance.remaining rather than deriving goal - eaten, so exercise/BMR-aware calorie modes stay correct', () => {
-    // Simulates a dynamic/TDEE calorie mode where remaining includes an
-    // exercise credit, so it diverges from a naive goal - eaten calculation
-    // (2000 - 500 would be 1500, but the server-computed remaining is 1800).
-    useAppPreferencesStore.setState({
-      diarySummaryVisible: true,
-      diarySummaryExpanded: false,
-    });
-    const { getByText, queryByText } = renderWidget({
-      summary: buildSummary({
-        calorieBalance: {
-          ...buildSummary().calorieBalance,
-          eaten: 500,
-          goal: 2000,
-          remaining: 1800,
-        },
-      }),
-    });
-    expect(getByText(/1,800/)).toBeTruthy();
-    expect(queryByText(/1,500/)).toBeNull();
-  });
-
-  it('shows the projected device TDEE and Goal Mode target', () => {
-    useAppPreferencesStore.setState({
-      diarySummaryVisible: true,
-      diarySummaryExpanded: false,
-    });
-    const { getByText } = renderWidget({
-      summary: buildSummary({
-        calorieBalance: {
-          ...buildSummary().calorieBalance,
-          goal: 2160,
-          remaining: 1660,
-          tdeeProjection: {
-            projectedBurn: 2400,
-            baselineBurn: 2400,
-            adjustment: 160,
-            targetCalories: 2160,
-            source: 'health_connect_total',
-          },
-        },
-      }),
-    });
-
-    expect(getByText('Projected TDEE: 2,400 kcal')).toBeTruthy();
-    expect(getByText('Goal Mode target: 2,160 kcal')).toBeTruthy();
-    expect(getByText('Device total calories')).toBeTruthy();
-  });
-
-  it('supports the prior-server projection shape during rolling upgrades', () => {
-    useAppPreferencesStore.setState({
-      diarySummaryVisible: true,
-      diarySummaryExpanded: false,
-    });
-    const { getByText } = renderWidget({
-      summary: buildSummary({
-        calorieBalance: {
-          ...buildSummary().calorieBalance,
-          goal: 2160,
-          tdeeProjection: {
-            projectedBurn: 2400,
-            baselineBurn: 2200,
-            adjustment: 160,
-          } as unknown as NonNullable<
-            DailySummary['calorieBalance']['tdeeProjection']
-          >,
-        },
-      }),
-    });
-
-    expect(getByText('Goal Mode target: 2,160 kcal')).toBeTruthy();
-    expect(getByText('Device projection')).toBeTruthy();
-  });
-
-  it('still renders the calorie row (without a goal bar/suffix) when no goal is configured', () => {
-    useAppPreferencesStore.setState({
-      diarySummaryVisible: true,
-      diarySummaryExpanded: false,
-    });
-    const { getByText, queryByText, toJSON } = renderWidget({
-      summary: buildSummary({
-        calorieGoal: 0,
-        calorieBalance: {
-          ...buildSummary().calorieBalance,
-          eaten: 300,
-          goal: 0,
-        },
-      }),
-    });
-    expect(toJSON()).not.toBeNull();
-    expect(getByText(/300/)).toBeTruthy();
-    expect(queryByText(/2,000/)).toBeNull();
+    expect(queryByText(/kcal/)).toBeNull();
+    expect(queryByText(/remaining/)).toBeNull();
   });
 
   it('shows total carbs labeled "Carbs" when showNetCarbs is false', () => {

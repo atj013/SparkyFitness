@@ -20,8 +20,8 @@ const NutrientPill: React.FC<NutrientPillProps> = ({
   const showProgress = !!progressColor && !!goal && goal > 0;
   const percent = showProgress ? Math.min(100, (consumed / goal) * 100) : 0;
   return (
-    <View className="w-[23%] bg-border rounded-xl px-0.5 py-2 items-center">
-      <Text className="text-xs text-text-primary mb-1" numberOfLines={1}>
+    <View className="w-[23%] bg-border rounded-xl px-0.5 py-1.5 items-center">
+      <Text className="text-xs text-text-primary mb-0.5" numberOfLines={1}>
         {label}
       </Text>
       <Text
@@ -34,7 +34,7 @@ const NutrientPill: React.FC<NutrientPillProps> = ({
       </Text>
       {showProgress ? (
         <View
-          className="self-stretch mx-1.5 mt-1.5 h-[3px] rounded-full bg-progress-rail overflow-hidden"
+          className="self-stretch mx-1.5 mt-1 h-[3px] rounded-full bg-progress-rail overflow-hidden"
           testID="nutrient-pill-progress"
         >
           <View

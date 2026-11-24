@@ -77,10 +77,16 @@ const DiaryFoodCard: React.FC<DiaryFoodCardProps> = ({
   return (
     <View
       className="bg-surface rounded-xl shadow-sm overflow-hidden"
+      // Still the one card that grows: any room the measured height misses
+      // (a card above got shorter) comes to the list, and the next measure
+      // folds it into the height.
       style={
         height != null
-          ? { height: Math.max(height, MIN_FOOD_CARD_HEIGHT) }
-          : { flexGrow: 3, flexBasis: 0, minHeight: MIN_FOOD_CARD_HEIGHT }
+          ? {
+              height: Math.max(height, MIN_FOOD_CARD_HEIGHT),
+              flexGrow: 1,
+            }
+          : { flexGrow: 1, flexBasis: 0, minHeight: MIN_FOOD_CARD_HEIGHT }
       }
       onLayout={onLayout}
       testID="diary-food-card"

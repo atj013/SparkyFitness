@@ -27,9 +27,10 @@ const STAGE_FIELDS = [
 
 /**
  * Last night on the Diary's first screen: how long you slept, from when to when,
- * the score when the source has one, and a thin bar of the stages. It shares the
- * Food card's room (a quarter of it). On a day with no night it shows the same
- * card saying so, so the Food card above keeps one height from day to day.
+ * the score when the source has one, and a thin bar of the stages. It keeps its
+ * own height; the Food card above takes the spare room. On a day with no night
+ * it shows the same card saying so, so the Food card keeps one height from day
+ * to day.
  */
 const DiarySleepCard: React.FC<DiarySleepCardProps> = ({
   entry,
@@ -58,7 +59,7 @@ const DiarySleepCard: React.FC<DiarySleepCardProps> = ({
           defaultValue: 'No sleep recorded. Open sleep trends',
         })}
         className="bg-surface rounded-xl shadow-sm px-3.5 pt-3.5 pb-4 justify-center gap-2"
-        style={{ flexGrow: 1, flexBasis: 0, minHeight: 64 }}
+        style={{ minHeight: 64 }}
         testID="diary-sleep-card-empty"
       >
         <View className="flex-row items-center gap-1.5">
@@ -105,7 +106,7 @@ const DiarySleepCard: React.FC<DiarySleepCardProps> = ({
         range,
       })}
       className="bg-surface rounded-xl shadow-sm px-3.5 pt-3.5 pb-4 justify-center gap-2"
-      style={{ flexGrow: 1, flexBasis: 0, minHeight: 64 }}
+      style={{ minHeight: 64 }}
       testID="diary-sleep-card"
     >
       <View className="flex-row items-center gap-1.5">
