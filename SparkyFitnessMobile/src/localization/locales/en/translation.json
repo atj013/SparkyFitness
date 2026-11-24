@@ -1574,6 +1574,7 @@
       "restDay": "Rest day",
       "doneToday": "Done today",
       "openA11y": "{{plan}}, done today. Open the workout",
+      "calendarA11y": "Workout. Open the training calendar",
       "nothingToday": "Nothing planned today",
       "weekA11y_one": "{{count}} workout day this week",
       "weekA11y_other": "{{count}} workout days this week"
@@ -10409,6 +10410,8 @@
     "loadValue": "load {{value}}",
     "estimated": "(estimated, no heart rate)",
     "extra": "Extra",
+    "openWorkoutA11y": "Open {{name}}",
+    "openWorkoutFailed": "Couldn't open that workout",
     "totals": {
       "title": "Planned vs completed",
       "sessions": "{{done}} of {{planned}} planned sessions",

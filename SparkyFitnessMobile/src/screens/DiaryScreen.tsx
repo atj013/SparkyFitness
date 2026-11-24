@@ -6,7 +6,6 @@ import {
   hasSupplementNutrition,
   isCardioModality,
   resolveExerciseModality,
-  type ExerciseSessionResponse,
   type PresetSessionExerciseRequest,
 } from '@workspace/shared';
 import React, {
@@ -83,11 +82,11 @@ import { useDateColumnCollapsed } from '../hooks/useDateColumnCollapsed';
 import { crossfadeHeaderColumn } from '../../modules/side-bar-metrics';
 import { useHeaderActionColors } from '../hooks/useHeaderActionColors';
 import { useMeasurements } from '../hooks/useMeasurements';
+import { useOpenWorkout } from '../hooks/useOpenWorkout';
 import { usePreferences } from '../hooks/usePreferences';
 import { useSleepDay } from '../hooks/useSleepDay';
 import { useNativeIOSTabsActive } from '../services/nativeTabBarPreference';
 import { useVerticalBar } from '../hooks/useVerticalBar';
-import { useActiveWorkoutStore } from '../stores/activeWorkoutStore';
 import { useAppPreferencesStore } from '../stores/appPreferencesStore';
 import { useDiaryDateStore } from '../stores/diaryDateStore';
 import type { RootStackParamList, TabParamList } from '../types/navigation';
@@ -100,7 +99,6 @@ import {
   getDateRelationToToday,
   toLocalDateString,
 } from '../utils/dateUtils';
-import { cardioSessionFromDiaryEntry } from '../utils/cardioSession';
 import {
   liveExerciseConfigFromPreset,
   makeDefaultStartSet,
@@ -322,6 +320,7 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ navigation }) => {
   const distanceUnit =
     (preferences?.default_distance_unit as 'km' | 'miles') ?? 'km';
   const weightMode = preferences?.default_weight_unit ?? 'kg';
+  const openWorkout = useOpenWorkout(navigation);
   const { getImageSource } = useExerciseImageSource();
 
   const { summary, isLoading, isError, refetch } = useDailySummary({
@@ -518,47 +517,6 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ navigation }) => {
       setter((prev) => (Math.abs(prev - next) >= 1 ? next : prev));
     };
 
-  const openWorkout = (session: ExerciseSessionResponse) => {
-    if (session.type === 'preset') {
-      // The live workout's surface is the active screen; detail is
-      // for reviewing past or planned sessions.
-      if (useActiveWorkoutStore.getState().sessionId === session.id) {
-        navigation.navigate('ActiveWorkout');
-        return;
-      }
-      navigation.navigate('WorkoutDetail', { session });
-    } else {
-      const synced = cardioSessionFromDiaryEntry(session, distanceUnit);
-      if (synced) {
-        navigation.navigate('CardioSession', {
-          session: synced,
-          distanceUnit,
-        });
-        return;
-      }
-      // A run, walk or ride logged in the app (a GPS recording
-      // or a watch run is saved as an in-app entry) opens the
-      // stats screen too, with an Edit button that hands over to
-      // the activity editor. Anything without a distance or heart
-      // rate has nothing for that screen to show.
-      const inApp =
-        (session.distance ?? 0) > 0 || session.avg_heart_rate != null
-          ? cardioSessionFromDiaryEntry(session, distanceUnit, {
-              allowInApp: true,
-            })
-          : null;
-      if (!inApp) {
-        navigation.navigate('ActivityDetail', { session });
-        return;
-      }
-      navigation.navigate('CardioSession', {
-        session: inApp,
-        distanceUnit,
-        diaryEntry: session,
-      });
-    }
-  };
-
   const renderOfflineDay = () => {
     const sessions = mergeWaitingWorkouts(
       offlineDay.saved ?? [],
@@ -666,8 +624,9 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ navigation }) => {
     }
 
     // Beside a vertical bar the gap under the large title is 12 pt, the same
-    // as Dashboard, Library and Settings.
-    const contentPaddingTop = usesNativeTabs && verticalBar ? 12 : 8;
+    // as Dashboard, Library and Settings. Under the custom date header the
+    // header's own bottom padding is the gap, as on Dashboard.
+    const contentPaddingTop = usesNativeTabs ? (verticalBar ? 12 : 8) : 0;
     // The 8 is the gap above whatever sits below the first screen.
     const firstScreenMinHeight =
       viewportHeight > 0
@@ -774,6 +733,9 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ navigation }) => {
               exerciseEntries={exerciseEntries}
               onStart={handleStartPlanAssignment}
               onOpenWorkout={openWorkout}
+              onOpenCalendar={() =>
+                navigation.navigate('TrainingCalendar', { date: selectedDate })
+              }
             />
           </View>
           <View className="flex-row gap-2">

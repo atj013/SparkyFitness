@@ -1,6 +1,7 @@
 import type {
   CalendarWeekTotals,
   CompletedItem,
+  ExerciseSessionResponse,
   LoadBySport,
   LoadSportGroup,
   PlannedItem,
@@ -237,4 +238,23 @@ export function weekProgress(week: CalendarWeekTotals) {
     missed,
     rest: planned - done - partial - missed,
   };
+}
+
+/**
+ * The logged session a calendar entry belongs to. The calendar lists diary
+ * exercise entries by id; a preset workout's entries are merged into one row
+ * under its first entry's id, so the session either is that entry or holds it.
+ */
+export function sessionForCalendarEntry(
+  sessions: readonly ExerciseSessionResponse[],
+  entryId: string
+): ExerciseSessionResponse | null {
+  return (
+    sessions.find(
+      (session) =>
+        session.id === entryId ||
+        (session.type === 'preset' &&
+          session.exercises.some((entry) => entry.id === entryId))
+    ) ?? null
+  );
 }

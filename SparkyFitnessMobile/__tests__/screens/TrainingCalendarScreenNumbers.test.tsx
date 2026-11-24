@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, screen, within } from '@testing-library/react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { TrainingCalendarResponse } from '@workspace/shared';
 import TrainingCalendarScreen from '../../src/screens/TrainingCalendarScreen';
 import { useTrainingCalendar } from '../../src/hooks/useTrainingCalendar';
@@ -75,7 +76,11 @@ test('formats day numbers, week totals and session counts with the app locale', 
     isError: false,
     refetch: jest.fn(),
   } as never);
-  render(<TrainingCalendarScreen {...({ navigation: {} } as never)} />);
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <TrainingCalendarScreen {...({ navigation: {}, route: {} } as never)} />
+    </QueryClientProvider>
+  );
   const day = within(screen.getByTestId('calendar-day-2026-10-14'));
   expect(day.getByText('‹14›')).toBeTruthy();
   expect(screen.getByTestId('week-total-2026-10-12')).toHaveTextContent(

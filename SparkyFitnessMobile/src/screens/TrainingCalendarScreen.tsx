@@ -1,5 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useQueryClient } from '@tanstack/react-query';
+import Toast from 'react-native-toast-message';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type {
@@ -14,6 +16,9 @@ import SegmentedControl from '../components/SegmentedControl';
 import StatusView from '../components/StatusView';
 import Icon from '../components/Icon';
 import { useScreenHeader } from '../hooks/useScreenHeader';
+import { useOpenWorkout } from '../hooks/useOpenWorkout';
+import { dailySummaryQueryKey } from '../hooks/queryKeys';
+import { loadDailySummaryRawData } from '../services/dailySummaryService';
 import { usePreferences } from '../hooks/usePreferences';
 import { useTrainingCalendar } from '../hooks/useTrainingCalendar';
 import { useTrainingCalendarColors } from '../hooks/useTrainingCalendarColors';
@@ -28,6 +33,7 @@ import {
   itemsByDay,
   monthRange,
   orderWeeks,
+  sessionForCalendarEntry,
   weekDays,
   weekSummary,
   type DayItems,
@@ -53,7 +59,7 @@ const WEEK_TOTAL_WIDTH = 44;
  * scheduled workout plans) against what was done (the diary's workouts), with
  * a status on every planned item, weekly totals and a day's detail.
  */
-const TrainingCalendarScreen: React.FC<Props> = ({ navigation }) => {
+const TrainingCalendarScreen: React.FC<Props> = ({ navigation, route }) => {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const appLocale = useAppLocale();
@@ -73,9 +79,11 @@ const TrainingCalendarScreen: React.FC<Props> = ({ navigation }) => {
   const [openingDay, setOpeningDay] = useState<string | null>(null);
   const opening = openingDay ?? deviceToday;
   const [mode, setMode] = useState<ViewMode>('month');
-  // What the person picked; until they pick, the view sits on today.
-  const [anchorPick, setAnchorPick] = useState<string | null>(null);
-  const [selectedPick, setSelectedPick] = useState<string | null>(null);
+  // What the person picked; until they pick, the view sits on today, or on
+  // the day it was opened for (the Diary's day).
+  const openedFor = route.params?.date ?? null;
+  const [anchorPick, setAnchorPick] = useState<string | null>(openedFor);
+  const [selectedPick, setSelectedPick] = useState<string | null>(openedFor);
   const anchor = anchorPick ?? opening;
   const selected = selectedPick ?? opening;
   const [showEarlier, setShowEarlier] = useState(false);
@@ -106,6 +114,36 @@ const TrainingCalendarScreen: React.FC<Props> = ({ navigation }) => {
   }, [appLocale, firstDayOfWeek]);
 
   const select = (day: string) => setSelectedPick(day);
+
+  const queryClient = useQueryClient();
+  const openWorkout = useOpenWorkout(navigation);
+  // One open at a time: a second tap while the day loads does nothing.
+  const openingEntry = useRef(false);
+  // A completed row opens its workout. The calendar only knows the diary
+  // entry, so the day's sessions are loaded (the Diary's own query, so a day
+  // already seen there opens at once) and the one holding the entry opened.
+  const openCompleted = async (item: CompletedItem) => {
+    if (openingEntry.current) return;
+    openingEntry.current = true;
+    try {
+      const raw = await queryClient.fetchQuery({
+        queryKey: dailySummaryQueryKey(item.day),
+        queryFn: () => loadDailySummaryRawData(item.day),
+      });
+      const session = sessionForCalendarEntry(raw.exerciseEntries, item.id);
+      if (session) openWorkout(session);
+      else throw new Error('Workout not in the day');
+    } catch {
+      Toast.show({
+        type: 'error',
+        text1: t('trainingCalendar.openWorkoutFailed', {
+          defaultValue: "Couldn't open that workout",
+        }),
+      });
+    } finally {
+      openingEntry.current = false;
+    }
+  };
 
   // Switching views keeps the selected day: the grid, the detail and the totals
   // all open on the week or month that holds it.
@@ -343,7 +381,17 @@ const TrainingCalendarScreen: React.FC<Props> = ({ navigation }) => {
     (data?.planned ?? []).map((p) => [p.id, p.status])
   );
   const renderCompleted = (item: CompletedItem) => (
-    <View key={item.id} className="flex-row items-center py-2">
+    <Pressable
+      key={item.id}
+      testID={`completed-${item.id}`}
+      className="flex-row items-center py-2 active:opacity-70"
+      accessibilityRole="button"
+      accessibilityLabel={t('trainingCalendar.openWorkoutA11y', {
+        defaultValue: 'Open {{name}}',
+        name: item.name ?? sportLoadLabel(t, item.sport),
+      })}
+      onPress={() => void openCompleted(item)}
+    >
       <View
         testID={`completed-bar-${item.id}`}
         className="w-2 h-8 rounded-full mr-3"
@@ -376,7 +424,13 @@ const TrainingCalendarScreen: React.FC<Props> = ({ navigation }) => {
           {t('trainingCalendar.extra', { defaultValue: 'Extra' })}
         </Text>
       ) : null}
-    </View>
+      <Icon
+        name="chevron-forward"
+        size={16}
+        color={colors.extra}
+        style={{ marginLeft: 8 }}
+      />
+    </Pressable>
   );
 
   // The week holding today is labelled and in the accent colour; weeks still

@@ -135,6 +135,42 @@ describe('DiaryPlanCard', () => {
     ).toBeNull();
   });
 
+  it('opens the training calendar from the rest of the tile', () => {
+    const onOpenCalendar = jest.fn();
+    const onStart = jest.fn();
+    const screen = renderCard({ onOpenCalendar, onStart });
+
+    fireEvent.press(screen.getByText('Lower'));
+    expect(onOpenCalendar).toHaveBeenCalledTimes(1);
+
+    fireEvent.press(
+      screen.getByLabelText('Workout. Open the training calendar')
+    );
+    expect(onOpenCalendar).toHaveBeenCalledTimes(2);
+
+    // The Start button keeps its own job.
+    fireEvent.press(screen.getByLabelText('Start Lower'));
+    expect(onStart).toHaveBeenCalled();
+    expect(onOpenCalendar).toHaveBeenCalledTimes(2);
+  });
+
+  it('still opens the logged workout, not the calendar, from a done line', () => {
+    const onOpenCalendar = jest.fn();
+    const onOpenWorkout = jest.fn();
+    const entries = session('a-wed');
+    const screen = renderCard({
+      exerciseEntries: entries,
+      onOpenWorkout,
+      onOpenCalendar,
+    });
+
+    fireEvent.press(
+      screen.getByLabelText('Strength, done today. Open the workout')
+    );
+    expect(onOpenWorkout).toHaveBeenCalledWith(entries[0]);
+    expect(onOpenCalendar).not.toHaveBeenCalled();
+  });
+
   it('fills the days of the week a plan session was logged', async () => {
     const screen = renderCard({ exerciseEntries: session('a-wed') });
 

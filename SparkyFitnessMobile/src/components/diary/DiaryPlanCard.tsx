@@ -31,6 +31,8 @@ interface DiaryPlanCardProps {
   ) => void;
   /** Opens the day's logged session from a plan line that is done. */
   onOpenWorkout?: (session: ExerciseSessionResponse) => void;
+  /** Opens the training calendar; a tap anywhere on the tile but its buttons. */
+  onOpenCalendar?: () => void;
 }
 
 /**
@@ -46,6 +48,7 @@ const DiaryPlanCard: React.FC<DiaryPlanCardProps> = ({
   exerciseEntries,
   onStart,
   onOpenWorkout,
+  onOpenCalendar,
 }) => {
   const { t } = useTranslation();
   const [planColor, onPlanColor] = useCSSVariable([
@@ -71,11 +74,29 @@ const DiaryPlanCard: React.FC<DiaryPlanCardProps> = ({
   if (plans.length === 0) return null;
 
   return (
-    <View
+    // The tile is one big tap target for the calendar, but a screen reader
+    // reaches it through the title row so the buttons inside stay reachable.
+    <Pressable
       className="flex-1 bg-surface rounded-xl shadow-sm px-3 py-2.5 gap-1 justify-center"
       testID="diary-plan-card"
+      onPress={onOpenCalendar}
+      disabled={!onOpenCalendar}
+      accessible={false}
     >
-      <View className="flex-row items-center gap-1.5">
+      <Pressable
+        className="flex-row items-center gap-1.5"
+        onPress={onOpenCalendar}
+        disabled={!onOpenCalendar}
+        accessibilityRole={onOpenCalendar ? 'button' : undefined}
+        accessibilityLabel={
+          onOpenCalendar
+            ? t('diary.plan.calendarA11y', {
+                defaultValue: 'Workout. Open the training calendar',
+              })
+            : undefined
+        }
+        testID="diary-plan-header"
+      >
         <Icon
           name={plans[0].schedule_type === 'sequential' ? 'repeat' : 'calendar'}
           size={16}
@@ -84,7 +105,10 @@ const DiaryPlanCard: React.FC<DiaryPlanCardProps> = ({
         <Text className="text-sm font-semibold text-diary-plan flex-1">
           {t('diary.plan.title', { defaultValue: 'Workout' })}
         </Text>
-      </View>
+        {onOpenCalendar ? (
+          <Icon name="chevron-forward" size={14} color={planColor} />
+        ) : null}
+      </Pressable>
       {plans.map((plan) => {
         const assignment =
           plan.next_assignment ??
@@ -207,7 +231,7 @@ const DiaryPlanCard: React.FC<DiaryPlanCardProps> = ({
           </View>
         );
       })}
-    </View>
+    </Pressable>
   );
 };
 

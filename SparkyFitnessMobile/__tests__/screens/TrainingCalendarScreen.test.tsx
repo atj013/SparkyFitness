@@ -3,12 +3,24 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from '@testing-library/react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import Toast from 'react-native-toast-message';
 import type { TrainingCalendarResponse } from '@workspace/shared';
 import TrainingCalendarScreen from '../../src/screens/TrainingCalendarScreen';
 import { useTrainingCalendar } from '../../src/hooks/useTrainingCalendar';
 import { initializeI18n } from '../../src/localization/i18n';
+import { loadDailySummaryRawData } from '../../src/services/dailySummaryService';
+
+const mockOpenWorkout = jest.fn();
+jest.mock('../../src/hooks/useOpenWorkout', () => ({
+  useOpenWorkout: () => mockOpenWorkout,
+}));
+jest.mock('../../src/services/dailySummaryService', () => ({
+  loadDailySummaryRawData: jest.fn(),
+}));
 
 jest.mock('../../src/hooks/useTrainingCalendarColors', () => ({
   useTrainingCalendarColors: () => ({
@@ -124,9 +136,13 @@ const state = (overrides: Record<string, unknown> = {}) =>
     ...overrides,
   } as never);
 const navigate = jest.fn();
-const renderScreen = () =>
+const renderScreen = (params?: { date?: string }) =>
   render(
-    <TrainingCalendarScreen {...({ navigation: { navigate } } as never)} />
+    <QueryClientProvider client={new QueryClient()}>
+      <TrainingCalendarScreen
+        {...({ navigation: { navigate }, route: { params } } as never)}
+      />
+    </QueryClientProvider>
   );
 
 beforeAll(async () => {
@@ -488,4 +504,44 @@ test('a completion keeps the colour of its planned item when that item is on ano
   expect(
     screen.getByTestId('completed-bar-e2').props.style.backgroundColor
   ).toBe('#extra');
+});
+
+test('opens on the day it was opened for', () => {
+  state();
+  renderScreen({ date: '2026-10-12' });
+  expect(
+    screen.getByTestId('calendar-day-2026-10-12').props.accessibilityState
+  ).toEqual(expect.objectContaining({ selected: true }));
+});
+
+test('a completed row opens the workout that holds its entry', async () => {
+  // The calendar merges a preset's exercises under its first entry's id.
+  const preset = {
+    type: 'preset',
+    id: 'session-1',
+    exercises: [{ id: 'other' }, { id: 'e1' }],
+  };
+  jest.mocked(loadDailySummaryRawData).mockResolvedValue({
+    exerciseEntries: [{ type: 'individual', id: 'x' }, preset],
+  } as never);
+  state();
+  renderScreen();
+  fireEvent.press(screen.getByLabelText('Open Evening run'));
+  await waitFor(() => expect(mockOpenWorkout).toHaveBeenCalledWith(preset));
+  expect(loadDailySummaryRawData).toHaveBeenCalledWith('2026-10-14');
+});
+
+test('says so when the workout is not in that day any more', async () => {
+  jest.mocked(loadDailySummaryRawData).mockResolvedValue({
+    exerciseEntries: [],
+  } as never);
+  state();
+  renderScreen();
+  fireEvent.press(screen.getByLabelText('Open Evening run'));
+  await waitFor(() =>
+    expect(Toast.show).toHaveBeenCalledWith(
+      expect.objectContaining({ text1: "Couldn't open that workout" })
+    )
+  );
+  expect(mockOpenWorkout).not.toHaveBeenCalled();
 });

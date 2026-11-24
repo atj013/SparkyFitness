@@ -1,7 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeBottomTabNavigator } from '@bottom-tabs/react-navigation';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -27,7 +26,6 @@ import WhatsNewBanner, {
 } from './WhatsNewBanner';
 import { AnnouncementModal } from './AnnouncementModal';
 import { useNativeIOSTabsActive } from '../services/nativeTabBarPreference';
-import { useConfirmedVerticalBar } from '../hooks/useVerticalBar';
 import { useHeaderActionColors } from '../hooks/useHeaderActionColors';
 import { useTranslation } from 'react-i18next';
 
@@ -36,7 +34,6 @@ import { useTranslation } from 'react-i18next';
 // and hydration reminders, background water sync.
 export const NON_ADD_TABS = ['Diary', 'Library', 'Settings'] as const;
 export type NonAddTabName = (typeof NON_ADD_TABS)[number];
-const ADD_TAB_ICON: AppleIcon = { sfSymbol: 'plus' };
 
 type TabTrackingProps = {
   rememberActiveTab: (routeName: string) => void;
@@ -46,26 +43,6 @@ type TabTrackingProps = {
 function resolveColor(value: string, fallback: string) {
   return value && value !== 'unset' ? value : fallback;
 }
-
-const AddRedirectScreen = ({
-  getLastActiveTab,
-}: {
-  getLastActiveTab: () => NonAddTabName;
-}) => {
-  const navigation = useNavigation();
-
-  useFocusEffect(
-    React.useCallback(() => {
-      const frame = requestAnimationFrame(() => {
-        navigation.navigate(getLastActiveTab() as never);
-      });
-
-      return () => cancelAnimationFrame(frame);
-    }, [getLastActiveTab, navigation])
-  );
-
-  return null;
-};
 
 // Tab screens — no Go Back (tab bar provides navigation)
 const SafeDashboard = withErrorBoundary(DashboardScreen, 'Dashboard');
@@ -269,10 +246,9 @@ function SettingsStackScreen() {
 }
 
 export function NativeTabsLayout({
-  onAddPress,
   rememberActiveTab,
   getLastActiveTab,
-}: { onAddPress?: () => void } & TabTrackingProps) {
+}: TabTrackingProps) {
   const { t } = useTranslation();
   const [primary, tabActive, tabInactive] = useCSSVariable([
     '--color-accent-primary',
@@ -285,11 +261,6 @@ export function NativeTabsLayout({
   );
   const inactiveTintColor = resolveColor(tabInactive, '#8E8E93');
   const whatsNewState = useWhatsNewBannerState();
-  // Hide the Add tab only on a confirmed vertical bar, where the native
-  // detached Add button replaces it. Not on side insets (a notched iPhone has
-  // them with a horizontal bar) and not on a guess: until the system has said so
-  // the tab stays, so there is never a moment with no Add control at all.
-  const hasSideBar = useConfirmedVerticalBar();
 
   return (
     <NativeTabsOverlayContext.Provider value={whatsNewState}>
@@ -310,21 +281,21 @@ export function NativeTabsLayout({
         }}
       >
         <NativeTab.Screen
-          name="Diary"
-          component={DiaryStackScreen}
-          options={{
-            tabBarLabel: t('navigation.diary', { defaultValue: 'Diary' }),
-            tabBarIcon: () =>
-              ({ sfSymbol: 'book.fill' }) as unknown as AppleIcon,
-          }}
-        />
-        <NativeTab.Screen
           name="Library"
           component={LibraryStackScreen}
           options={{
             tabBarLabel: t('navigation.library', { defaultValue: 'Library' }),
             tabBarIcon: () =>
               ({ sfSymbol: 'books.vertical.fill' }) as unknown as AppleIcon,
+          }}
+        />
+        <NativeTab.Screen
+          name="Diary"
+          component={DiaryStackScreen}
+          options={{
+            tabBarLabel: t('navigation.diary', { defaultValue: 'Diary' }),
+            tabBarIcon: () =>
+              ({ sfSymbol: 'book.fill' }) as unknown as AppleIcon,
           }}
         />
         <NativeTab.Screen
@@ -349,39 +320,16 @@ export function NativeTabsLayout({
             lazy: false,
           }}
         />
-        {/* Last on purpose: the search-role tab is the detached button at the
-            trailing end of the Liquid Glass bar, and built against the iOS 27
-            SDK it stayed inline when declared between the other tabs. */}
-        <NativeTab.Screen
-          name="Add"
-          options={{
-            tabBarLabel: t('navigation.add', { defaultValue: 'Add' }),
-            tabBarIcon: () => ADD_TAB_ICON,
-            role: 'search',
-            tabBarItemHidden: hasSideBar,
-            preventsDefault: true,
-          }}
-          listeners={{
-            tabPress: (e) => {
-              e.preventDefault();
-              onAddPress?.();
-            },
-          }}
-        >
-          {() => <AddRedirectScreen getLastActiveTab={getLastActiveTab} />}
-        </NativeTab.Screen>
       </NativeTab.Navigator>
     </NativeTabsOverlayContext.Provider>
   );
 }
 
 export function FallbackTabsLayout({
-  onAddPress,
   rememberActiveTab,
   getLastActiveTab,
-}: { onAddPress?: () => void } & TabTrackingProps) {
+}: TabTrackingProps) {
   const { t } = useTranslation();
-  // The AddSheet is rendered in App.tsx with proper props
   return (
     <FallbackTab.Navigator
       // Start on the last active tab so toggling the Liquid Glass tab bar —
@@ -401,39 +349,12 @@ export function FallbackTabsLayout({
       }}
       tabBar={(props) => (
         <View collapsable={false}>
-          <WhatsNewBanner reserveAddButtonClearance />
+          <WhatsNewBanner />
           <ActiveWorkoutBar variant="embedded" />
           <CustomTabBar {...props} />
         </View>
       )}
     >
-      <FallbackTab.Screen
-        name="Diary"
-        component={SafeDiary}
-        options={{
-          tabBarLabel: t('navigation.diary', { defaultValue: 'Diary' }),
-          tabBarAccessibilityLabel: t('navigation.diary', {
-            defaultValue: 'Diary',
-          }),
-        }}
-      />
-      <FallbackTab.Screen
-        name="Add"
-        options={{
-          tabBarLabel: t('navigation.add', { defaultValue: 'Add' }),
-          tabBarAccessibilityLabel: t('navigation.add', {
-            defaultValue: 'Add',
-          }),
-        }}
-        listeners={{
-          tabPress: (e) => {
-            e.preventDefault();
-            onAddPress?.();
-          },
-        }}
-      >
-        {() => <AddRedirectScreen getLastActiveTab={getLastActiveTab} />}
-      </FallbackTab.Screen>
       <FallbackTab.Screen
         name="Library"
         component={SafeLibrary}
@@ -441,6 +362,16 @@ export function FallbackTabsLayout({
           tabBarLabel: t('navigation.library', { defaultValue: 'Library' }),
           tabBarAccessibilityLabel: t('navigation.library', {
             defaultValue: 'Library',
+          }),
+        }}
+      />
+      <FallbackTab.Screen
+        name="Diary"
+        component={SafeDiary}
+        options={{
+          tabBarLabel: t('navigation.diary', { defaultValue: 'Diary' }),
+          tabBarAccessibilityLabel: t('navigation.diary', {
+            defaultValue: 'Diary',
           }),
         }}
       />
@@ -473,19 +404,16 @@ export function FallbackTabsLayout({
 // Native Liquid Glass tabs are only used on iOS 26+. Older iOS releases
 // intentionally use the same custom tab bar as Android.
 export function TabsLayout({
-  onAddPress,
   rememberActiveTab,
   getLastActiveTab,
-}: { onAddPress?: () => void } & TabTrackingProps) {
+}: TabTrackingProps) {
   const tabs = useNativeIOSTabsActive() ? (
     <NativeTabsLayout
-      onAddPress={onAddPress}
       rememberActiveTab={rememberActiveTab}
       getLastActiveTab={getLastActiveTab}
     />
   ) : (
     <FallbackTabsLayout
-      onAddPress={onAddPress}
       rememberActiveTab={rememberActiveTab}
       getLastActiveTab={getLastActiveTab}
     />

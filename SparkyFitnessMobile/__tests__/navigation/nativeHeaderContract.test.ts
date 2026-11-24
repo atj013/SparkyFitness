@@ -640,10 +640,7 @@ describe('native header navigation contract', () => {
       : [];
 
     const nativeTabScreens = extractScreenNames(tabsSource, 'NativeTab');
-    const missingContentTabs = missingFrom(
-      nonAddTabs,
-      nativeTabScreens.filter((name) => name !== 'Add')
-    );
+    const missingContentTabs = missingFrom(nonAddTabs, nativeTabScreens);
     const missingStackScreens = nonAddTabs.filter(
       (name) =>
         !new RegExp(`function ${name}StackScreen\\(`).test(tabsSource) ||

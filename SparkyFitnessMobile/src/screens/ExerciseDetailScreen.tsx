@@ -29,8 +29,6 @@ import Icon from '../components/Icon';
 import SafeImage from '../components/SafeImage';
 import SegmentedControl, { type Segment } from '../components/SegmentedControl';
 import ExerciseHistoryList from '../components/ExerciseHistoryList';
-import { useActiveWorkoutStore } from '../stores/activeWorkoutStore';
-import { cardioSessionFromDiaryEntry } from '../utils/cardioSession';
 import ActionSheet, {
   type ActionSheetItem,
   type ActionSheetRef,
@@ -60,6 +58,7 @@ import {
 } from '../hooks';
 import { useExerciseStats } from '../hooks/useExerciseStats';
 import { useStartLiveWorkout } from '../hooks/useStartLiveWorkout';
+import { useOpenWorkout } from '../hooks/useOpenWorkout';
 import { useDiaryDateStore } from '../stores/diaryDateStore';
 import {
   buildSingleExerciseStartPayload,
@@ -70,7 +69,6 @@ import {
 } from '../utils/workoutSession';
 import { formatDateLabel } from '../utils/dateUtils';
 import { useScreenHeader, type HeaderItem } from '../hooks/useScreenHeader';
-import type { ExerciseSessionResponse } from '@workspace/shared';
 import type { Exercise } from '../types/exercise';
 import type { RootStackScreenProps } from '../types/navigation';
 import { localizeExerciseTaxonomyValue } from '../localization/exerciseTaxonomy';
@@ -167,25 +165,7 @@ const ExerciseDetailScreen: React.FC<ExerciseDetailScreenProps> = ({
   const distanceUnit =
     (preferences?.default_distance_unit as 'km' | 'miles') ?? 'km';
   // A History row opens the workout it came from, the way the diary does.
-  const openHistorySession = (session: ExerciseSessionResponse) => {
-    if (session.type === 'preset') {
-      if (useActiveWorkoutStore.getState().sessionId === session.id) {
-        navigation.navigate('ActiveWorkout');
-        return;
-      }
-      navigation.navigate('WorkoutDetail', { session });
-      return;
-    }
-    const cardioSession = cardioSessionFromDiaryEntry(session, distanceUnit);
-    if (cardioSession) {
-      navigation.navigate('CardioSession', {
-        session: cardioSession,
-        distanceUnit,
-      });
-      return;
-    }
-    navigation.navigate('ActivityDetail', { session });
-  };
+  const openHistorySession = useOpenWorkout(navigation);
   // Same UUID guard as hydration: the stats and history routes 400 on non-UUID
   // ids (e.g. external-provider exercises), so those get no History tab.
   const historyAvailable = isConnected && UUID_REGEX.test(item.id);

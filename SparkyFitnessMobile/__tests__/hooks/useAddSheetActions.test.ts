@@ -74,7 +74,6 @@ function rootStateWithDiaryParams(params?: object): StateSnapshot {
               name: 'Diary',
               state: { index: 0, routes: [{ name: 'DiaryRoot', params }] },
             },
-            { name: 'Add' },
             { name: 'Library' },
             { name: 'Settings' },
           ],

@@ -16,16 +16,9 @@ import {
   subscribeToWhatsNewBannerReset,
 } from '../services/whatsNewBanner';
 
-// CustomTabBar's floating Add button rises 20pt above the tab bar's top edge
-// (`-mt-5`). When no workout is active, this banner is the direct sibling
-// above the tab bar, so it must reserve a 20pt dead strip below its content
-// or the FAB will overlap the row.
-const FAB_CLEARANCE = 20;
-
 type Phase = 'evaluating' | 'eligible' | 'dismissed' | 'ineligible';
 
 type WhatsNewBannerProps = {
-  reserveAddButtonClearance?: boolean;
   presentation?: 'legacy' | 'glass';
 };
 
@@ -91,7 +84,7 @@ export function useWhatsNewBannerState(): WhatsNewBannerState {
 
 export const WhatsNewBannerContent: React.FC<
   WhatsNewBannerProps & { state: WhatsNewBannerState }
-> = ({ reserveAddButtonClearance = false, presentation = 'legacy', state }) => {
+> = ({ presentation = 'legacy', state }) => {
   const { t } = useTranslation();
   const [accentPrimary, textMuted, chromeBorder] = useCSSVariable([
     '--color-accent-primary',
@@ -103,10 +96,7 @@ export const WhatsNewBannerContent: React.FC<
 
   if (presentation === 'legacy') {
     return (
-      <View
-        className="bg-chrome border-t border-chrome-border"
-        style={{ paddingBottom: reserveAddButtonClearance ? FAB_CLEARANCE : 0 }}
-      >
+      <View className="bg-chrome border-t border-chrome-border">
         <Pressable
           onPress={state.open}
           accessibilityRole="button"
@@ -151,9 +141,7 @@ export const WhatsNewBannerContent: React.FC<
 
   return (
     <LiquidGlassSurface
-      style={createLiquidGlassPillStyle(chromeBorder, {
-        paddingBottom: reserveAddButtonClearance ? FAB_CLEARANCE : 0,
-      })}
+      style={createLiquidGlassPillStyle(chromeBorder)}
       colorScheme="auto"
       glassEffectStyle="regular"
       isInteractive

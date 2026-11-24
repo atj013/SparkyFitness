@@ -1,14 +1,7 @@
 import React from 'react';
-import {
-  View,
-  TouchableOpacity,
-  Text,
-  Platform,
-  StyleSheet,
-} from 'react-native';
+import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCSSVariable } from 'uniwind';
-import { useTranslation } from 'react-i18next';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import Icon, { type IconName } from './Icon';
 
@@ -26,16 +19,13 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({
   descriptors,
   navigation,
 }) => {
-  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const [chrome, chromeBorder, tabActive, tabInactive, accentPrimary] =
-    useCSSVariable([
-      '--color-chrome',
-      '--color-chrome-border',
-      '--color-tab-active',
-      '--color-tab-inactive',
-      '--color-accent-primary',
-    ]) as [string, string, string, string, string];
+  const [chrome, chromeBorder, tabActive, tabInactive] = useCSSVariable([
+    '--color-chrome',
+    '--color-chrome-border',
+    '--color-tab-active',
+    '--color-tab-inactive',
+  ]) as [string, string, string, string];
 
   return (
     <View
@@ -54,7 +44,6 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({
           return null;
         }
         const isFocused = state.index === index;
-        const isAddButton = route.name === 'Add';
 
         const onPress = () => {
           const event = navigation.emit({
@@ -62,10 +51,6 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({
             target: route.key,
             canPreventDefault: true,
           });
-
-          if (isAddButton) {
-            return;
-          }
 
           if (!event.defaultPrevented && !isFocused) {
             navigation.navigate(route.name, route.params);
@@ -78,43 +63,6 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({
             target: route.key,
           });
         };
-
-        if (isAddButton) {
-          return (
-            <View
-              key={route.key}
-              className="flex-1 items-center justify-end pb-1"
-            >
-              <TouchableOpacity
-                accessibilityRole="button"
-                accessibilityLabel={
-                  options.tabBarAccessibilityLabel ??
-                  t('navigation.add', { defaultValue: 'Add' })
-                }
-                onPress={onPress}
-                onLongPress={onLongPress}
-                activeOpacity={0.8}
-                className="w-14 h-14 rounded-full items-center justify-center -mt-5"
-                style={{
-                  backgroundColor: accentPrimary,
-                  ...Platform.select({
-                    ios: {
-                      shadowColor: '#000',
-                      shadowOffset: { width: 2, height: 4 },
-                      shadowOpacity: 0.25,
-                      shadowRadius: 6,
-                    },
-                    android: {
-                      elevation: 4,
-                    },
-                  }),
-                }}
-              >
-                <Icon name="add" size={28} color="#FFFFFF" weight="bold" />
-              </TouchableOpacity>
-            </View>
-          );
-        }
 
         const label =
           typeof options.tabBarLabel === 'string'

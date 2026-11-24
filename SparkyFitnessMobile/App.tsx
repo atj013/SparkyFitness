@@ -634,7 +634,6 @@ function AppContent() {
           <Stack.Screen name="Tabs" options={{ gestureEnabled: false }}>
             {() => (
               <TabsLayout
-                onAddPress={() => addSheetRef.current?.present()}
                 rememberActiveTab={rememberActiveTab}
                 getLastActiveTab={getLastActiveTab}
               />

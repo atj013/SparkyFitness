@@ -12,14 +12,11 @@ describe('CustomTabBar', () => {
     const routes = [
       { key: 'Dashboard-key', name: 'Dashboard' as const, params: undefined },
       { key: 'Diary-key', name: 'Diary' as const, params: undefined },
-      { key: 'Add-key', name: 'Add' as const, params: undefined },
       { key: 'Library-key', name: 'Library' as const, params: undefined },
       { key: 'Settings-key', name: 'Settings' as const, params: undefined },
     ];
 
-    const emit = jest.fn(({ target }: { target: string }) => ({
-      defaultPrevented: target === 'Add-key',
-    }));
+    const emit = jest.fn(() => ({ defaultPrevented: false }));
 
     return {
       state: {
@@ -37,10 +34,7 @@ describe('CustomTabBar', () => {
           {
             navigation: {} as never,
             route,
-            options:
-              route.name === 'Add'
-                ? { tabBarAccessibilityLabel: 'Add' }
-                : { title: route.name },
+            options: { title: route.name },
             render: jest.fn(),
           },
         ])
@@ -57,7 +51,7 @@ describe('CustomTabBar', () => {
     jest.clearAllMocks();
   });
 
-  it('emits the Add tab press without navigating when the Add button is pressed', () => {
+  it('emits the tab press and navigates to a tab that is not focused', () => {
     const props = createProps();
     const screen = render(
       <SafeAreaProvider initialMetrics={{ insets, frame }}>
@@ -65,14 +59,15 @@ describe('CustomTabBar', () => {
       </SafeAreaProvider>
     );
 
-    fireEvent.press(screen.getByLabelText('Add'));
+    expect(screen.queryByLabelText('Add')).toBeNull();
+    fireEvent.press(screen.getByLabelText('Diary'));
 
     expect(props.navigation.emit).toHaveBeenCalledWith({
       type: 'tabPress',
-      target: 'Add-key',
+      target: 'Diary-key',
       canPreventDefault: true,
     });
-    expect(props.navigation.navigate).not.toHaveBeenCalled();
+    expect(props.navigation.navigate).toHaveBeenCalledWith('Diary', undefined);
   });
 
   it('draws no button for a tab hidden with display none', () => {
