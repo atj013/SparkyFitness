@@ -1,28 +1,13 @@
 import React from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { fireEvent, render } from '@testing-library/react-native';
 import type { ExerciseSessionResponse } from '@workspace/shared';
 
 import DiaryPlanCard from '../../../src/components/diary/DiaryPlanCard';
-import { loadDailySummaryRawData } from '../../../src/services/dailySummaryService';
 import type {
   WorkoutPlanAssignment,
   WorkoutPlanTemplate,
 } from '../../../src/types/workoutPlans';
 
-jest.mock('../../../src/services/dailySummaryService', () => ({
-  loadDailySummaryRawData: jest.fn(),
-}));
-jest.mock('../../../src/utils/dateUtils', () => ({
-  getTodayDate: () => '2026-11-18',
-}));
-jest.mock('../../../src/utils/calendarLocalization', () => ({
-  useCalendarPresentation: () => ({
-    appLocale: 'en',
-    presentation: { locale: 'en', firstDayOfWeek: 0 },
-  }),
-  getCalendarWeekdayShortNames: () => ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
-}));
 jest.mock('../../../src/components/Icon', () => {
   const { View } = require('react-native');
   return { __esModule: true, default: () => <View /> };
@@ -71,56 +56,36 @@ const session = (assignmentId: string) =>
 function renderCard(
   props: Partial<React.ComponentProps<typeof DiaryPlanCard>> = {}
 ) {
-  const client = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  });
   return render(
-    <QueryClientProvider client={client}>
-      <DiaryPlanCard
-        date="2026-11-18"
-        plans={[plan()]}
-        exerciseEntries={[]}
-        onStart={jest.fn()}
-        {...props}
-      />
-    </QueryClientProvider>
+    <DiaryPlanCard
+      plans={[plan()]}
+      exerciseEntries={[]}
+      onStart={jest.fn()}
+      {...props}
+    />
   );
 }
 
-beforeEach(() => {
-  (loadDailySummaryRawData as jest.Mock).mockReset();
-  (loadDailySummaryRawData as jest.Mock).mockImplementation(
-    async (day: string) => ({
-      exerciseEntries: day === '2026-11-16' ? session('a-mon') : [],
-    })
-  );
-});
-
 describe('DiaryPlanCard', () => {
-  it('fills the days of the week a plan session was logged', async () => {
-    const screen = renderCard({ exerciseEntries: session('a-wed') });
+  it('shows only the session name with a Start button while it is due', () => {
+    const onStart = jest.fn();
+    const screen = renderCard({ onStart });
 
-    // Monday from its own day's diary, Wednesday from the selected day.
-    await waitFor(() =>
-      expect(screen.getAllByTestId('diary-plan-day-done')).toHaveLength(2)
-    );
-    expect(screen.getAllByTestId('diary-plan-day')).toHaveLength(5);
-    expect(screen.getByText('Done today')).toBeTruthy();
-    expect(screen.queryByText('Start')).toBeNull();
-    expect(screen.getByLabelText('2 workout days this week')).toBeTruthy();
+    expect(screen.getByText('Workout')).toBeTruthy();
+    expect(screen.getByText('Lower')).toBeTruthy();
+    expect(screen.queryByText(/Strength/)).toBeNull();
 
-    // The week runs Sunday to Saturday; days after today are never fetched.
-    const fetched = (loadDailySummaryRawData as jest.Mock).mock.calls.map(
-      ([day]) => day
-    );
-    expect(fetched.sort()).toEqual(['2026-11-15', '2026-11-16', '2026-11-17']);
+    fireEvent.press(screen.getByLabelText('Start Lower'));
+    expect(onStart).toHaveBeenCalledWith(plan(), wednesday);
   });
 
-  it('opens the logged workout from a row that is done', () => {
+  it('opens the logged workout from a line that is done', () => {
     const onOpenWorkout = jest.fn();
     const entries = session('a-wed');
     const screen = renderCard({ exerciseEntries: entries, onOpenWorkout });
 
+    expect(screen.getByText('Done today')).toBeTruthy();
+    expect(screen.queryByLabelText('Start Lower')).toBeNull();
     fireEvent.press(
       screen.getByLabelText('Strength, done today. Open the workout')
     );
@@ -128,7 +93,7 @@ describe('DiaryPlanCard', () => {
     expect(onOpenWorkout).toHaveBeenCalledWith(entries[0]);
   });
 
-  it('does not open anything from a row that is still to do', () => {
+  it('does not open anything from a line that is still to do', () => {
     const onOpenWorkout = jest.fn();
     const screen = renderCard({ onOpenWorkout });
 
@@ -140,42 +105,15 @@ describe('DiaryPlanCard', () => {
     ).toBeNull();
   });
 
-  it('offers Start while today is still to do', async () => {
-    const screen = renderCard();
-    expect(screen.getByText('Lower')).toBeTruthy();
-    expect(screen.getByText('Start')).toBeTruthy();
-    await waitFor(() =>
-      expect(screen.getAllByTestId('diary-plan-day-done')).toHaveLength(1)
-    );
-  });
-
-  it('keeps the week on a day with nothing planned', () => {
+  it('says Rest day on a day the plan has nothing on', () => {
     const screen = renderCard({
       plans: [plan({ next_assignment: null })],
     });
-    expect(screen.getByText('Nothing planned today')).toBeTruthy();
-    expect(screen.getByTestId('diary-plan-week')).toBeTruthy();
-  });
-
-  it('fills each plan row only with its own days', async () => {
-    const cardio: WorkoutPlanAssignment = { ...monday, id: 'c-tue' };
-    const screen = renderCard({
-      plans: [
-        plan(),
-        plan({ id: 'plan-2', assignments: [cardio], next_assignment: cardio }),
-      ],
-    });
-    await waitFor(() =>
-      expect(screen.getAllByTestId('diary-plan-day-done')).toHaveLength(1)
-    );
-    const [strength, other] = screen.getAllByTestId('diary-plan-week');
-    expect(strength.props.accessibilityLabel).toBe('1 workout day this week');
-    expect(other.props.accessibilityLabel).toBe('0 workout days this week');
+    expect(screen.getByText('Rest day')).toBeTruthy();
   });
 
   it('renders nothing without an active plan', () => {
     const screen = renderCard({ plans: [] });
     expect(screen.toJSON()).toBeNull();
-    expect(loadDailySummaryRawData).not.toHaveBeenCalled();
   });
 });

@@ -1,11 +1,7 @@
 import React from 'react';
 import { fireEvent, render } from '@testing-library/react-native';
 
-import {
-  BedTimeCard,
-  NapsCard,
-  WakeUpCard,
-} from '../../src/components/SleepCards';
+import { NapsCard, WakeUpCard } from '../../src/components/SleepCards';
 import { usePreferences } from '../../src/hooks/usePreferences';
 import { initializeI18n } from '../../src/localization/i18n';
 import { buildSleepEntry } from '../helpers/sleepFixtures';
@@ -225,47 +221,6 @@ describe('SleepCards', () => {
       });
       expect(mockNavigate).not.toHaveBeenCalledWith('SleepDetail', {
         entryId: 'entry-main',
-        day: DAY,
-      });
-    });
-  });
-
-  describe('BedTimeCard', () => {
-    test('renders the bedtime taken from the D+1 entry', () => {
-      const tonight = buildSleepEntry({
-        id: 'tonight',
-        entry_date: '2026-08-24',
-        bedtime: localInstant(22, 45),
-      });
-
-      const { getByText } = render(
-        <BedTimeCard entry={tonight} day={DAY} navigation={mockNavigation} />
-      );
-
-      expect(getByText('10:45 PM')).toBeTruthy();
-    });
-
-    test('hides the card entirely until tonight’s sleep has synced', () => {
-      const { queryByTestId } = render(
-        <BedTimeCard entry={null} day={DAY} navigation={mockNavigation} />
-      );
-
-      expect(queryByTestId('bed-time-card')).toBeNull();
-    });
-
-    test('navigates with the D+1 entry id', () => {
-      const tonight = buildSleepEntry({
-        id: 'tonight',
-        entry_date: '2026-08-24',
-      });
-
-      const { getByTestId } = render(
-        <BedTimeCard entry={tonight} day={DAY} navigation={mockNavigation} />
-      );
-      fireEvent.press(getByTestId('bed-time-card'));
-
-      expect(mockNavigate).toHaveBeenCalledWith('SleepDetail', {
-        entryId: 'tonight',
         day: DAY,
       });
     });

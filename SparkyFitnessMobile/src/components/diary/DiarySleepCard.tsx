@@ -25,12 +25,31 @@ const STAGE_FIELDS = [
   'awake_sleep_seconds',
 ] as const;
 
+const TILE_CLASS =
+  'flex-1 bg-surface rounded-xl shadow-sm px-3 py-2.5 gap-1 justify-center';
+
+const SleepTitle: React.FC<{ accent: string; chevron: string }> = ({
+  accent,
+  chevron,
+}) => {
+  const { t } = useTranslation();
+  return (
+    <View className="flex-row items-center gap-1.5">
+      <Icon name="sleep-bedtime" size={16} color={accent} />
+      <Text className="text-sm font-semibold text-diary-sleep flex-1">
+        {t('diary.sleep.title', { defaultValue: 'Sleep' })}
+      </Text>
+      <Icon name="chevron-forward" size={16} color={chevron} />
+    </View>
+  );
+};
+
 /**
- * Last night on the Diary's first screen: how long you slept, from when to when,
- * the score when the source has one, and a thin bar of the stages. It keeps its
- * own height; the Food card above takes the spare room. On a day with no night
- * it shows the same card saying so, so the Food card keeps one height from day
- * to day.
+ * Last night as a half-width tile beside the workout tile: how long you slept,
+ * the score when the source has one, and a thin bar of the stages (the times
+ * are in its accessibility label and on the sleep screen). On a day with no
+ * night it shows the same tile saying so, so the layout keeps one shape from
+ * day to day.
  */
 const DiarySleepCard: React.FC<DiarySleepCardProps> = ({
   entry,
@@ -58,18 +77,11 @@ const DiarySleepCard: React.FC<DiarySleepCardProps> = ({
         accessibilityLabel={t('diary.sleep.emptyA11y', {
           defaultValue: 'No sleep recorded. Open sleep trends',
         })}
-        className="bg-surface rounded-xl shadow-sm px-3.5 pt-3.5 pb-4 justify-center gap-2"
-        style={{ minHeight: 64 }}
+        className={TILE_CLASS}
         testID="diary-sleep-card-empty"
       >
-        <View className="flex-row items-center gap-1.5">
-          <Icon name="sleep-bedtime" size={20} color={accent} />
-          <Text className="text-[15px] font-semibold text-diary-sleep flex-1">
-            {t('diary.sleep.title', { defaultValue: 'Sleep' })}
-          </Text>
-          <Icon name="chevron-forward" size={18} color={textSecondary} />
-        </View>
-        <Text className="text-[13px] text-text-secondary">
+        <SleepTitle accent={accent} chevron={textSecondary} />
+        <Text className="text-[13px] text-text-secondary" numberOfLines={1}>
           {loading ? ' ' : empty}
         </Text>
       </Pressable>
@@ -96,6 +108,16 @@ const DiarySleepCard: React.FC<DiarySleepCardProps> = ({
   })).filter((s) => s.seconds > 0);
   const stageTotal = stages.reduce((sum, s) => sum + s.seconds, 0);
 
+  const aside =
+    entry.sleep_score != null
+      ? t('diary.sleep.score', {
+          defaultValue: 'Score {{score}}',
+          score: Math.round(entry.sleep_score),
+        })
+      : !hasTimeAsleep
+        ? t('sleep.timeInBed', { defaultValue: 'Time in bed' })
+        : null;
+
   return (
     <Pressable
       onPress={() => onPress(entry)}
@@ -105,44 +127,29 @@ const DiarySleepCard: React.FC<DiarySleepCardProps> = ({
         duration,
         range,
       })}
-      className="bg-surface rounded-xl shadow-sm px-3.5 pt-3.5 pb-4 justify-center gap-2"
-      style={{ minHeight: 64 }}
+      className={TILE_CLASS}
       testID="diary-sleep-card"
     >
-      <View className="flex-row items-center gap-1.5">
-        <Icon name="sleep-bedtime" size={20} color={accent} />
-        <Text className="text-[15px] font-semibold text-diary-sleep flex-1">
-          {t('diary.sleep.title', { defaultValue: 'Sleep' })}
-        </Text>
-        {entry.sleep_score != null ? (
-          <Text className="text-sm text-text-secondary">
-            {t('diary.sleep.score', {
-              defaultValue: 'Score {{score}}',
-              score: Math.round(entry.sleep_score),
-            })}
-          </Text>
-        ) : null}
-        <Icon name="chevron-forward" size={18} color={textSecondary} />
-      </View>
-      <View className="flex-row items-baseline gap-2">
-        <Text className="text-[22px] font-bold text-text-primary">
-          {duration}
-        </Text>
-        {!hasTimeAsleep ? (
-          <Text className="text-[13px] text-text-secondary">
-            {t('sleep.timeInBed', { defaultValue: 'Time in bed' })}
-          </Text>
-        ) : null}
+      <SleepTitle accent={accent} chevron={textSecondary} />
+      <View className="flex-row items-baseline gap-1.5">
         <Text
-          className="text-[13px] text-text-secondary flex-1 text-right"
+          className="text-[19px] font-bold text-text-primary"
           numberOfLines={1}
         >
-          {range}
+          {duration}
         </Text>
+        {aside ? (
+          <Text
+            className="text-[12px] text-text-secondary shrink"
+            numberOfLines={1}
+          >
+            {aside}
+          </Text>
+        ) : null}
       </View>
       {stageTotal > 0 ? (
         <View
-          className="flex-row h-1.5 rounded-full overflow-hidden"
+          className="flex-row h-1.5 rounded-full overflow-hidden mt-0.5"
           accessibilityElementsHidden
           importantForAccessibility="no-hide-descendants"
         >

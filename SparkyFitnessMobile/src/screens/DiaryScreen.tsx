@@ -55,7 +55,7 @@ import { useWaterIntakeMutation } from '../hooks/useWaterIntakeMutation';
 import ServingAdjustSheet, {
   type ServingAdjustSheetRef,
 } from '../components/ServingAdjustSheet';
-import { BedTimeCard, NapsCard } from '../components/SleepCards';
+import { NapsCard } from '../components/SleepCards';
 import StatusView from '../components/StatusView';
 import { ServerStatusView } from '../components/ServerGate';
 import OfflineBanner from '../components/OfflineBanner';
@@ -341,7 +341,6 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ navigation }) => {
   const {
     wakeUp,
     naps,
-    bedTime,
     isLoading: isSleepLoading,
     isForbidden: isSleepForbidden,
     refetch: refetchSleep,
@@ -748,27 +747,30 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ navigation }) => {
             height={foodHeight}
             onLayout={storeRounded(setFoodCardHeight)}
           />
-          {/* Without permission to read sleep (a 403) the card stays off. */}
-          {!isSleepForbidden && (
-            <DiarySleepCard
-              entry={wakeUp}
-              loading={isSleepLoading}
-              onPress={(entry) =>
-                navigation.navigate('SleepDetail', {
-                  entryId: entry.id,
-                  day: selectedDate,
-                })
-              }
-              onPressEmpty={() => navigation.navigate('SleepAnalytics')}
+          {/* Sleep and the planned workout share one row of tiles; either
+              takes the whole row when the other is off (no permission to
+              read sleep, a 403, or no active plan). */}
+          <View className="flex-row gap-2">
+            {!isSleepForbidden && (
+              <DiarySleepCard
+                entry={wakeUp}
+                loading={isSleepLoading}
+                onPress={(entry) =>
+                  navigation.navigate('SleepDetail', {
+                    entryId: entry.id,
+                    day: selectedDate,
+                  })
+                }
+                onPressEmpty={() => navigation.navigate('SleepAnalytics')}
+              />
+            )}
+            <DiaryPlanCard
+              plans={activePlans}
+              exerciseEntries={exerciseEntries}
+              onStart={handleStartPlanAssignment}
+              onOpenWorkout={openWorkout}
             />
-          )}
-          <DiaryPlanCard
-            date={selectedDate}
-            plans={activePlans}
-            exerciseEntries={exerciseEntries}
-            onStart={handleStartPlanAssignment}
-            onOpenWorkout={openWorkout}
-          />
+          </View>
           <View className="flex-row gap-2">
             <WeightTile
               date={selectedDate}
@@ -809,7 +811,7 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ navigation }) => {
         </View>
 
         {/* Below the first screen, only when the day has them: run-program
-            prompts, naps, tonight's bedtime and progress photos. Logged
+            prompts, naps and progress photos. Logged
             workouts and measurements stay off the Diary (exercise history and
             the Measurements report have them); last night is the Sleep card. */}
         <View className="pt-2">
@@ -832,11 +834,6 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ navigation }) => {
             }
           />
           <NapsCard naps={naps} day={selectedDate} navigation={navigation} />
-          <BedTimeCard
-            entry={bedTime}
-            day={selectedDate}
-            navigation={navigation}
-          />
           <CheckInPhotosSummary
             date={selectedDate}
             photos={dayPhotos}

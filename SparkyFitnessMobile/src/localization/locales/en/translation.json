@@ -1570,6 +1570,8 @@
     "plan": {
       "position": "{{plan}} • {{position}}",
       "startA11y": "Start {{session}}",
+      "title": "Workout",
+      "restDay": "Rest day",
       "doneToday": "Done today",
       "openA11y": "{{plan}}, done today. Open the workout",
       "nothingToday": "Nothing planned today",

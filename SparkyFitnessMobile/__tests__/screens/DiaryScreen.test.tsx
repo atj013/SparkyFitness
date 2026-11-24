@@ -635,12 +635,12 @@ describe('DiaryScreen sleep cards', () => {
     configureSleep();
   });
 
-  test('shows last night on the first screen and naps and bedtime below', () => {
+  test('shows last night on the first screen and naps below, with no bedtime card', () => {
     const { getByTestId, queryByTestId } = renderScreen();
 
     expect(getByTestId('diary-sleep-card')).toBeTruthy();
     expect(getByTestId('naps-card')).toBeTruthy();
-    expect(getByTestId('bed-time-card')).toBeTruthy();
+    expect(queryByTestId('bed-time-card')).toBeNull();
     // The Sleep card replaces the old Wake Up card.
     expect(queryByTestId('wake-up-card')).toBeNull();
   });
@@ -715,20 +715,20 @@ describe('DiaryScreen sleep cards', () => {
     expect(queryByText('diary.sleep.empty')).toBeNull();
   });
 
-  test('a bed time alone shows only the bed time card', () => {
+  test('tonight’s bed time alone adds no card', () => {
     configureSleep({
       wakeUp: null,
       naps: [],
       bedTime: buildSleepEntry({ id: 'tonight', entry_date: '2024-06-16' }),
     });
 
-    const { getByTestId, queryByTestId } = renderScreen();
+    const { queryByTestId } = renderScreen();
 
-    expect(getByTestId('bed-time-card')).toBeTruthy();
+    expect(queryByTestId('bed-time-card')).toBeNull();
     expect(queryByTestId('diary-sleep-card')).toBeNull();
   });
 
-  test('orders the day: food, sleep, plan, the four tiles, then naps and bedtime', () => {
+  test('orders the day: food, sleep and plan, the four tiles, then naps', () => {
     // A populated day so the food/exercise/measurements branch renders.
     mockUseDailySummary.mockReturnValue({
       summary: { ...baseSummary, foodEntries: [buildFoodEntry('f1')] },
@@ -754,7 +754,6 @@ describe('DiaryScreen sleep cards', () => {
       'steps-tile',
       'meds-tile',
       'naps-card',
-      'bed-time-card',
     ];
     const positions = order.map((testID) => {
       const node = getByTestId(testID);
