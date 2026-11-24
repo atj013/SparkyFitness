@@ -19,6 +19,19 @@ export const fetchMindfulnessDaySummary = (
   });
 };
 
+/** The person's sessions between two days, both included. */
+export const fetchMindfulnessSessionsRange = (
+  startDate: string,
+  endDate: string
+): Promise<MindfulnessSessionResponse[]> => {
+  const params = new URLSearchParams({ startDate, endDate });
+  return apiFetch<MindfulnessSessionResponse[]>({
+    endpoint: `/api/v2/mindfulness/entries?${params.toString()}`,
+    serviceName: 'Mindfulness API',
+    operation: 'fetch sessions range',
+  });
+};
+
 export const updateMindfulnessSession = (
   id: string,
   data: Partial<CreateMindfulnessSessionBody>

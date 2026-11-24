@@ -1579,6 +1579,17 @@
       "weekA11y_one": "{{count}} workout day this week",
       "weekA11y_other": "{{count}} workout days this week"
     },
+    "habits": {
+      "brush": "Brush + Floss",
+      "meditate": "Meditate",
+      "skincare": "Skincare",
+      "done": "done",
+      "morningDone": "morning done, tap again for the night",
+      "notDone": "not done",
+      "saveFailed": "Couldn't save that. Try again.",
+      "streakA11y_one": "{{count}} day streak",
+      "streakA11y_other": "{{count}} day streak"
+    },
     "sleep": {
       "title": "Sleep",
       "range": "{{start}} – {{end}}",

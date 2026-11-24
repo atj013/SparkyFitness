@@ -42,6 +42,7 @@ import ExerciseSummary from '../components/ExerciseSummary';
 import DiaryFoodCard, {
   MIN_FOOD_CARD_HEIGHT,
 } from '../components/diary/DiaryFoodCard';
+import DiaryHabitsCard from '../components/diary/DiaryHabitsCard';
 import DiaryPlanCard from '../components/diary/DiaryPlanCard';
 import DiarySleepCard from '../components/diary/DiarySleepCard';
 import {
@@ -83,6 +84,7 @@ import { crossfadeHeaderColumn } from '../../modules/side-bar-metrics';
 import { useHeaderActionColors } from '../hooks/useHeaderActionColors';
 import { useMeasurements } from '../hooks/useMeasurements';
 import { useOpenWorkout } from '../hooks/useOpenWorkout';
+import { useDailyHabits } from '../hooks/useDailyHabits';
 import { usePreferences } from '../hooks/usePreferences';
 import { useSleepDay } from '../hooks/useSleepDay';
 import { useNativeIOSTabsActive } from '../services/nativeTabBarPreference';
@@ -321,6 +323,7 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ navigation }) => {
     (preferences?.default_distance_unit as 'km' | 'miles') ?? 'km';
   const weightMode = preferences?.default_weight_unit ?? 'kg';
   const openWorkout = useOpenWorkout(navigation);
+  const habits = useDailyHabits(selectedDate, isConnected);
   const { getImageSource } = useExerciseImageSource();
 
   const { summary, isLoading, isError, refetch } = useDailySummary({
@@ -710,6 +713,15 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ navigation }) => {
             height={foodHeight}
             onLayout={storeRounded(setFoodCardHeight)}
           />
+          <StepsTile
+            date={selectedDate}
+            steps={measurements?.steps}
+            goal={summary.stepsGoal}
+            enabled={isConnected}
+            onPress={() =>
+              navigation.navigate('MeasurementsReport', { range: '7d' })
+            }
+          />
           {/* Sleep and the planned workout share one row of tiles; either
               takes the whole row when the other is off (no permission to
               read sleep, a 403, or no active plan). */}
@@ -758,23 +770,15 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ navigation }) => {
               disableDecrement={summary.waterConsumed <= 0}
             />
           </View>
-          {/* Steps and Meds share a shorter last row. */}
-          <View className="flex-row gap-2">
-            <StepsTile
-              date={selectedDate}
-              steps={measurements?.steps}
-              goal={summary.stepsGoal}
-              enabled={isConnected}
-              onPress={() =>
-                navigation.navigate('MeasurementsReport', { range: '7d' })
-              }
-            />
+          {/* Habits and the day's meds share the last card. */}
+          <DiaryHabitsCard habits={habits}>
             <MedsTile
+              inline
               date={selectedDate}
               enabled={isConnected}
               onPressTitle={() => navigation.navigate('MedicationsList')}
             />
-          </View>
+          </DiaryHabitsCard>
         </View>
 
         {/* Below the first screen, only when the day has them: run-program

@@ -35,10 +35,9 @@ import {
 } from '../../utils/unitConversions';
 
 const TILE_CLASS = 'flex-1 bg-surface rounded-xl shadow-sm px-3 py-3';
-// Steps and Meds share the last row in a shorter form, leaving the room to
-// the summary's macros at the top of the Diary.
-const COMPACT_TILE_CLASS = 'flex-1 bg-surface rounded-xl shadow-sm px-3 py-2';
-const STEP_BAR_MAX_HEIGHT = 16;
+// Steps is one short card the width of the Diary, under the food card.
+const WIDE_TILE_CLASS = 'bg-surface rounded-xl shadow-sm px-3 py-2';
+const STEP_BAR_MAX_HEIGHT = 22;
 
 // Each tile's title is in its own Diary card color. Pass the whole class
 // name (never build it from parts) so Tailwind can see it.
@@ -185,10 +184,11 @@ export const StepsTile: React.FC<StepsTileProps> = ({
   onPress,
 }) => {
   const { t } = useTranslation();
-  const [accent, trackColor] = useCSSVariable([
+  const [accent, trackColor, textSecondary] = useCSSVariable([
     '--color-diary-steps',
     '--color-progress-track',
-  ]) as [string, string];
+    '--color-text-secondary',
+  ]) as [string, string, string];
   const { stepsData } = useMeasurementsRange({ range: '30d', enabled });
   const week = stepsData.slice(-7);
   const max = Math.max(1, goal, ...week.map((d) => d.steps));
@@ -203,34 +203,40 @@ export const StepsTile: React.FC<StepsTileProps> = ({
         defaultValue: '{{value}} steps. Open this week’s steps',
         value: formatLocalizedNumber(value),
       })}
-      className={`${COMPACT_TILE_CLASS} gap-0.5`}
+      className={`${WIDE_TILE_CLASS} flex-row items-center gap-3`}
       testID="diary-steps-tile"
     >
-      <TileTitle
-        title={t('diary.tiles.steps', { defaultValue: 'Steps' })}
-        colorClass="text-diary-steps"
-      />
-      <View className="flex-row items-baseline gap-1.5">
-        <Text
-          className="text-[17px] font-bold text-text-primary"
-          numberOfLines={1}
-        >
-          {formatLocalizedNumber(value)}
-        </Text>
-        {percent !== null ? (
+      <View className="flex-1">
+        <TileTitle
+          title={t('diary.tiles.steps', { defaultValue: 'Steps' })}
+          colorClass="text-diary-steps"
+          chevron={false}
+        />
+        <View className="flex-row items-baseline gap-1.5">
           <Text
-            className="text-[12px] text-text-secondary shrink"
+            className="text-[17px] font-bold text-text-primary"
             numberOfLines={1}
           >
-            {t('diary.tiles.stepsOfGoal', {
-              defaultValue: '{{percent}}% of {{goal}}',
-              percent: formatLocalizedNumber(percent),
-              goal: formatLocalizedNumber(goal),
-            })}
+            {formatLocalizedNumber(value)}
           </Text>
-        ) : null}
+          {percent !== null ? (
+            <Text
+              className="text-[12px] text-text-secondary shrink"
+              numberOfLines={1}
+            >
+              {t('diary.tiles.stepsOfGoal', {
+                defaultValue: '{{percent}}% of {{goal}}',
+                percent: formatLocalizedNumber(percent),
+                goal: formatLocalizedNumber(goal),
+              })}
+            </Text>
+          ) : null}
+        </View>
       </View>
-      <View className="flex-row items-end justify-between min-h-[16px]">
+      <View
+        className="flex-row items-end gap-1.5"
+        style={{ minHeight: STEP_BAR_MAX_HEIGHT }}
+      >
         {week.map((d) => {
           const height =
             d.steps > 0
@@ -251,6 +257,7 @@ export const StepsTile: React.FC<StepsTileProps> = ({
           );
         })}
       </View>
+      <Icon name="chevron-forward" size={16} color={textSecondary} />
     </Pressable>
   );
 };
@@ -458,12 +465,15 @@ interface MedsTileProps {
   date: string;
   enabled: boolean;
   onPressTitle: () => void;
+  /** Drawn as the bottom row of the habits card: title left, circles right. */
+  inline?: boolean;
 }
 
 export const MedsTile: React.FC<MedsTileProps> = ({
   date,
   enabled,
   onPressTitle,
+  inline = false,
 }) => {
   const { t } = useTranslation();
   const [accent, onAccent, ringColor, emptyFill] = useCSSVariable([
@@ -526,9 +536,15 @@ export const MedsTile: React.FC<MedsTileProps> = ({
     }
   };
 
+  // Inline it is a row under the habits, set off by a line; on its own, a
+  // short card the width of the Diary.
+  const containerClass = inline
+    ? 'flex-row items-center gap-3 border-t border-border-subtle pt-2'
+    : `${WIDE_TILE_CLASS} gap-1`;
+
   if (isLoadingMeds || isLoadingEntries) {
     return (
-      <View className={`${COMPACT_TILE_CLASS} items-center justify-center`}>
+      <View className={`${containerClass} items-center justify-center`}>
         <ActivityIndicator size="small" color={accent} />
       </View>
     );
@@ -536,7 +552,7 @@ export const MedsTile: React.FC<MedsTileProps> = ({
   if (slots.length === 0) return null;
 
   return (
-    <View className={`${COMPACT_TILE_CLASS} gap-1`} testID="diary-meds-tile">
+    <View className={containerClass} testID="diary-meds-tile">
       <Pressable
         onPress={onPressTitle}
         accessibilityRole="button"
@@ -549,7 +565,11 @@ export const MedsTile: React.FC<MedsTileProps> = ({
           colorClass="text-diary-meds"
         />
       </Pressable>
-      <View className="flex-1 flex-row items-center justify-around">
+      <View
+        className={`flex-1 flex-row items-center ${
+          inline ? 'justify-end gap-3' : 'justify-around'
+        }`}
+      >
         {slots.map((slot) => {
           const ink = slot.taken ? onAccent : accent;
           return (

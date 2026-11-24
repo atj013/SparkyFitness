@@ -38,6 +38,12 @@ const diaryRoute = {
   params: undefined,
 } as unknown as DiaryScreenProps['route'];
 
+jest.mock('../../src/hooks/useDailyHabits', () => {
+  const habit = { level: 0, streak: 0, busy: false, toggle: jest.fn() };
+  return {
+    useDailyHabits: () => ({ brush: habit, meditate: habit, skincare: habit }),
+  };
+});
 jest.mock('@react-navigation/native', () => {
   const actual = jest.requireActual('@react-navigation/native');
   return {
@@ -728,7 +734,7 @@ describe('DiaryScreen sleep cards', () => {
     expect(queryByTestId('diary-sleep-card')).toBeNull();
   });
 
-  test('orders the day: food, sleep and plan, the four tiles, then naps', () => {
+  test('orders the day: food, steps, sleep and plan, weight and water, habits with meds, then naps', () => {
     // A populated day so the food/exercise/measurements branch renders.
     mockUseDailySummary.mockReturnValue({
       summary: { ...baseSummary, foodEntries: [buildFoodEntry('f1')] },
@@ -747,11 +753,12 @@ describe('DiaryScreen sleep cards', () => {
 
     const order = [
       'diary-food-card',
+      'steps-tile',
       'diary-sleep-card',
       'diary-plan-card',
       'weight-tile',
       'water-tile',
-      'steps-tile',
+      'diary-habits-card',
       'meds-tile',
       'naps-card',
     ];

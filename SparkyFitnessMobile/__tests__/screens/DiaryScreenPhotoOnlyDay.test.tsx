@@ -9,6 +9,12 @@ import {
 } from '../hooks/queryTestUtils';
 import type { CheckInPhoto } from '../../src/types/checkInPhotos';
 
+jest.mock('../../src/hooks/useDailyHabits', () => {
+  const habit = { level: 0, streak: 0, busy: false, toggle: jest.fn() };
+  return {
+    useDailyHabits: () => ({ brush: habit, meditate: habit, skincare: habit }),
+  };
+});
 jest.mock('../../src/hooks/useWaterIntakeMutation', () => ({
   useWaterIntakeMutation: () => ({
     increment: jest.fn(),
