@@ -4626,6 +4626,11 @@
     }
   },
   "foodSearch": {
+    "askSparky": {
+      "title": "Ask Sparky",
+      "query": "“{{query}}”",
+      "a11y": "Ask Sparky: {{query}}"
+    },
     "logged": {
       "count_one": "{{count}} added",
       "count_other": "{{count}} added",

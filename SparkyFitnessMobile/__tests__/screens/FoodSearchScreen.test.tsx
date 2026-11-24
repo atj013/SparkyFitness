@@ -319,6 +319,37 @@ describe('FoodSearchScreen', () => {
     return screen;
   }
 
+  describe('Ask Sparky', () => {
+    it('offers the typed text to Sparky as the first result', () => {
+      const screen = renderSearching(route, ' chicken salad ');
+
+      fireEvent.press(screen.getByTestId('food-search-ask-sparky'));
+
+      expect(screen.getByText('“chicken salad”')).toBeTruthy();
+      expect(navigation.navigate).toHaveBeenCalledWith('Chat', {
+        prompt: 'chicken salad',
+        promptId: 1,
+      });
+    });
+
+    it('is left out when picking a food for another screen', () => {
+      const screen = renderSearching({
+        ...route,
+        params: { pickerMode: 'meal-builder' },
+      });
+
+      expect(screen.queryByTestId('food-search-ask-sparky')).toBeNull();
+    });
+
+    it('focuses the search box once the screen has slid in', () => {
+      renderSearching();
+      const transitionEnd = navigation.addListener.mock.calls.find(
+        ([event]: [string]) => event === 'transitionEnd'
+      );
+      expect(transitionEnd).toBeDefined();
+    });
+  });
+
   describe('after foods were logged from this search', () => {
     const renderLogged = (
       params: RootStackScreenProps<'FoodSearch'>['route']['params']

@@ -27,6 +27,7 @@ import {
 } from '../../src/services/api/chatTransport';
 import { fetch as expoFetch } from 'expo/fetch';
 import ChatScreen from '../../src/screens/ChatScreen';
+import { useAppPreferencesStore } from '../../src/stores/appPreferencesStore';
 import { getActiveServerConfig } from '../../src/services/storage';
 import { useActiveAiServiceSetting, useChatHistory } from '../../src/hooks';
 
@@ -192,6 +193,7 @@ jest.mock('@assistant-ui/react-native', () => {
           }
           (global as any).__mockComposerSetText?.(value);
         },
+        send: () => (global as any).__mockComposerSend?.(),
         addAttachment: async (attachment: unknown) => {
           await mockPhotoState.__mockComposerAddAttachment(attachment);
         },
@@ -455,14 +457,14 @@ const initialMetrics = {
   frame: { x: 0, y: 0, width: 390, height: 844 },
 };
 
-function renderScreen() {
+function renderScreen(screenRoute = route) {
   // A real QueryClient backs the screen's useQueryClient() call; useChatHistory
   // is mocked so no actual queries run through it.
   const queryClient = new QueryClient();
   const tree = () => (
     <QueryClientProvider client={queryClient}>
       <SafeAreaProvider initialMetrics={initialMetrics}>
-        <ChatScreen navigation={navigation} route={route} />
+        <ChatScreen navigation={navigation} route={screenRoute} />
       </SafeAreaProvider>
     </QueryClientProvider>
   );
@@ -488,6 +490,7 @@ beforeEach(() => {
   (global as any).__mockMessagesScrollToEnd = undefined;
   (global as any).__mockComposerText = '';
   (global as any).__mockComposerSetText = jest.fn();
+  (global as any).__mockComposerSend = jest.fn();
   mockPhotoState.__mockComposerAddAttachment = jest.fn();
   mockPhotoState.__mockComposerRemoveAttachment = jest.fn();
   mockPhotoState.__mockComposerAttachments = [];
@@ -500,6 +503,39 @@ beforeEach(() => {
     isLoading: false,
   } as any);
   mockUseChatHistory.mockReturnValue({ data: [], isLoading: false } as any);
+});
+
+describe('ChatScreen prompt hand-over', () => {
+  it('sends a handed-over prompt in a fresh, empty thread', async () => {
+    const seed = [
+      {
+        id: 'm1',
+        role: 'user',
+        content: 'hi',
+        parts: [{ type: 'text', text: 'hi' }],
+      },
+    ];
+    mockUseChatHistory.mockReturnValue({ data: seed, isLoading: false } as any);
+    const before = useAppPreferencesStore.getState().chatConversationId;
+
+    const { findByTestId } = renderScreen({
+      params: { prompt: 'Is chicken salad healthy?', promptId: 1 },
+    } as any);
+    await findByTestId('composer-send');
+    await act(async () => {
+      jest.runOnlyPendingTimers?.();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect((global as any).__mockCapturedMessages).toEqual([]);
+    expect((global as any).__mockComposerSetText).toHaveBeenCalledWith(
+      'Is chicken salad healthy?'
+    );
+    expect((global as any).__mockComposerSend).toHaveBeenCalledTimes(1);
+    expect(useAppPreferencesStore.getState().chatConversationId).not.toBe(
+      before
+    );
+  });
 });
 
 describe('ChatScreen config gating', () => {

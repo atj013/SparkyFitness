@@ -18,6 +18,7 @@ import {
   ActivityIndicator,
   SectionList,
   TextInput,
+  Pressable,
   Platform,
 } from 'react-native';
 import Button from '../components/ui/Button';
@@ -222,6 +223,28 @@ const FoodSearchScreen: React.FC<FoodSearchScreenProps> = ({
 
   // "+" New Food / New Meal menu, anchored under the button.
   const addButtonRef = useRef<View>(null);
+  // `autoFocus` alone can lose to the push animation on Android (the input
+  // mounts mid-slide and the keyboard never opens), so focus again once the
+  // screen has settled.
+  const searchInputRef = useRef<TextInput>(null);
+  // Tells one Ask Sparky tap from the next with the same text.
+  const askSparkyCount = useRef(0);
+  const askSparky = useCallback(
+    (prompt: string) => {
+      askSparkyCount.current += 1;
+      navigation.navigate('Chat', {
+        prompt,
+        promptId: askSparkyCount.current,
+      });
+    },
+    [navigation]
+  );
+  useEffect(() => {
+    const stop = navigation.addListener('transitionEnd', (e) => {
+      if (!e.data.closing) searchInputRef.current?.focus();
+    });
+    return stop;
+  }, [navigation]);
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState<AnchorRect | null>(null);
 
@@ -1313,6 +1336,7 @@ const FoodSearchScreen: React.FC<FoodSearchScreenProps> = ({
         </View>
         <View className="flex-1 ml-2">
           <TextInput
+            ref={searchInputRef}
             className="text-text-primary"
             style={{ fontSize: 16, padding: 0, includeFontPadding: false }}
             placeholder={t('foodSearch.search.placeholder', {
@@ -1416,6 +1440,45 @@ const FoodSearchScreen: React.FC<FoodSearchScreenProps> = ({
     </View>
   );
 
+  // --- Ask Sparky ---
+
+  // While logging food, the first result hands the typed text to Sparky as a
+  // fresh conversation. Picker modes choose an item for another screen, so
+  // they leave it out.
+  const askSparkyQuery = searchText.trim();
+  const askSparkyRow =
+    !selectionPickerMode && !recipeImportTarget && askSparkyQuery ? (
+      <Pressable
+        onPress={() => askSparky(askSparkyQuery)}
+        accessibilityRole="button"
+        accessibilityLabel={t('foodSearch.askSparky.a11y', {
+          defaultValue: 'Ask Sparky: {{query}}',
+          query: askSparkyQuery,
+        })}
+        className="flex-row items-center gap-3 px-4 py-3 border-b border-border-subtle active:opacity-70"
+        testID="food-search-ask-sparky"
+      >
+        <View
+          className="w-9 h-9 rounded-full items-center justify-center"
+          style={{ backgroundColor: accentColor }}
+        >
+          <Icon name="sparkles" size={18} color="#FFFFFF" />
+        </View>
+        <View className="flex-1">
+          <Text className="text-base font-semibold text-text-primary">
+            {t('foodSearch.askSparky.title', { defaultValue: 'Ask Sparky' })}
+          </Text>
+          <Text className="text-sm text-text-secondary" numberOfLines={1}>
+            {t('foodSearch.askSparky.query', {
+              defaultValue: '“{{query}}”',
+              query: askSparkyQuery,
+            })}
+          </Text>
+        </View>
+        <Icon name="chevron-forward" size={18} color={textMuted} />
+      </Pressable>
+    ) : null;
+
   // --- Body ---
 
   const renderBody = () => {
@@ -1436,6 +1499,7 @@ const FoodSearchScreen: React.FC<FoodSearchScreenProps> = ({
       return (
         <View className="flex-1 bg-surface">
           <SectionList
+            ListHeaderComponent={askSparkyRow}
             sections={resultSections}
             keyExtractor={resultKeyExtractor}
             renderItem={renderResultRow}

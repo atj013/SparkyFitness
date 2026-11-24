@@ -494,7 +494,12 @@ export type RootStackParamList = {
       }
     | undefined;
   SleepDetail: { entryId: string; day: string };
-  Chat: undefined;
+  /**
+   * `prompt` starts a fresh conversation (an empty thread on a new
+   * conversation id) and sends it; `promptId` tells a repeat of the same text
+   * apart, so each request is sent once.
+   */
+  Chat: { prompt?: string; promptId?: number } | undefined;
   ChatSettings: undefined;
   Logs: undefined;
   Sync: undefined;

@@ -1496,6 +1496,7 @@ function Centered({ text }: { text: string }) {
 
 export default function ChatScreen({
   navigation,
+  route,
 }: RootStackScreenProps<'Chat'>) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -1529,8 +1530,24 @@ export default function ChatScreen({
     | Pick<ReturnType<ChatComposer['getState']>, 'text' | 'attachments'>
     | undefined
   >(undefined);
+  // A prompt handed over from elsewhere (food search's Ask Sparky), sent once
+  // the fresh thread's composer connects.
+  const pendingPrompt = useRef<string | undefined>(undefined);
   const connectComposer = useCallback<ConnectComposer>((composer) => {
     activeComposer.current = composer;
+    const prompt = pendingPrompt.current;
+    pendingPrompt.current = undefined;
+    if (prompt) {
+      composer.setText(prompt);
+      // After the mount commits, so the runtime is ready to take the turn.
+      setTimeout(() => {
+        void Promise.resolve(composer.send()).catch((error: unknown) => {
+          addLog('Could not send the handed-over chat prompt', 'ERROR', [
+            String(error),
+          ]);
+        });
+      }, 0);
+    }
     const draft = recoveryDraft.current;
     recoveryDraft.current = undefined;
     if (draft) {
@@ -1614,9 +1631,37 @@ export default function ChatScreen({
   const { data: historyData, isLoading: loadingHistory } = useChatHistory({
     enabled: !!baseUrl,
   });
-  const initialMessages = restoredHistory?.messages ?? historyData ?? [];
-
   const serviceConfigId = setting?.id ?? null;
+
+  // Ask Sparky from food search: a fresh conversation (new id, empty thread,
+  // so the model sees only this question) that sends the prompt. The saved
+  // history is untouched and shows again the next time the chat opens.
+  const askPrompt = route.params?.prompt?.trim();
+  const askPromptKey = askPrompt
+    ? `${route.params?.promptId ?? ''}:${askPrompt}`
+    : undefined;
+  const handledPromptKey = useRef<string | undefined>(undefined);
+  const [freshThread, setFreshThread] = useState(false);
+  useEffect(() => {
+    if (!askPrompt || !askPromptKey || !serviceConfigId || loadingHistory)
+      return;
+    if (handledPromptKey.current === askPromptKey) return;
+    handledPromptKey.current = askPromptKey;
+    recoveryDraft.current = undefined;
+    pendingPrompt.current = askPrompt;
+    setRestoredHistory(undefined);
+    setFreshThread(true);
+    startChatConversation(serviceConfigId);
+    setThreadKey((k) => k + 1);
+  }, [
+    askPrompt,
+    askPromptKey,
+    serviceConfigId,
+    loadingHistory,
+    startChatConversation,
+  ]);
+  const initialMessages =
+    restoredHistory?.messages ?? (freshThread ? [] : (historyData ?? []));
 
   useEffect(() => {
     if (!serviceConfigId) return;
