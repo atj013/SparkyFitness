@@ -37,6 +37,7 @@ jest.mock('../../../src/hooks/useHydrationRange', () => ({
 jest.mock('../../../src/utils/dateUtils', () => ({
   ...jest.requireActual('../../../src/utils/dateUtils'),
   getDeviceTimezone: () => 'UTC',
+  getTodayDate: () => '2026-10-14',
 }));
 
 jest.mock('../../../src/components/Icon', () => {
@@ -200,5 +201,49 @@ describe('MedsTile', () => {
       <MedsTile date={DAY} enabled onPressTitle={jest.fn()} />
     );
     expect(toJSON()).toBeNull();
+  });
+});
+
+describe('MedsTile inline', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('draws circles with streaks and opens medications on a long press', () => {
+    // Both morning doses taken yesterday; nothing yet today.
+    const yesterday = [
+      buildEntry({
+        id: 'a',
+        medication_id: 'vit',
+        schedule_id: 'vit-am',
+        entry_date: '2026-10-13',
+      }),
+      buildEntry({
+        id: 'b',
+        medication_id: 'thy',
+        schedule_id: 'thy-am',
+        entry_date: '2026-10-13',
+      }),
+    ];
+    setup([]);
+    (useMedicationEntries as jest.Mock).mockImplementation(
+      ({ fromDate, toDate }: { fromDate: string; toDate: string }) => ({
+        data: fromDate === toDate ? [] : yesterday,
+        isLoading: false,
+      })
+    );
+    const onPressTitle = jest.fn();
+    const { getByTestId, queryByText } = render(
+      <MedsTile date={DAY} enabled inline onPressTitle={onPressTitle} />
+    );
+
+    expect(getByTestId('diary-meds-morning').props.accessibilityLabel).toMatch(
+      /not taken, 1 day streak$/
+    );
+    expect(
+      getByTestId('diary-meds-asNeeded').props.accessibilityLabel
+    ).not.toMatch(/streak/);
+    expect(queryByText('Meds')).toBeNull();
+
+    fireEvent(getByTestId('diary-meds-evening'), 'longPress');
+    expect(onPressTitle).toHaveBeenCalled();
   });
 });

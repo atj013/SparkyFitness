@@ -1,4 +1,9 @@
-import type { MedicationDetail, MedicationEntry } from '@workspace/shared';
+import {
+  addDays,
+  getDueDosesForDate,
+  type MedicationDetail,
+  type MedicationEntry,
+} from '@workspace/shared';
 import { doseSlotStatus, entryMatchesDose, type DueDose } from './medications';
 
 /**
@@ -93,4 +98,53 @@ export function buildDiaryMedsSlots(
     });
   }
   return slots;
+}
+
+/**
+ * Days in a row each scheduled circle (morning, evening) was filled, by the
+ * same rule that fills it on the Diary. Today does not break a streak while it
+ * is still open, and a day with nothing due in that circle neither counts nor
+ * breaks it. `entries` covers the days from `windowStart` to `today`; the
+ * as-needed circle has no schedule to keep, so no streak.
+ */
+export function diaryMedsSlotStreaks(
+  medications: MedicationDetail[],
+  entries: MedicationEntry[],
+  today: string,
+  windowStart: string,
+  timezone: string
+): Partial<Record<'morning' | 'evening', number>> {
+  const byDay = new Map<string, MedicationEntry[]>();
+  for (const entry of entries) {
+    const list = byDay.get(entry.entry_date) ?? [];
+    list.push(entry);
+    byDay.set(entry.entry_date, list);
+  }
+  const slotsByDay = new Map<string, DiaryMedsSlot[]>();
+  const slotsOn = (day: string) => {
+    let slots = slotsByDay.get(day);
+    if (!slots) {
+      slots = buildDiaryMedsSlots(
+        getDueDosesForDate(medications, day, timezone),
+        [],
+        byDay.get(day) ?? [],
+        day
+      );
+      slotsByDay.set(day, slots);
+    }
+    return slots;
+  };
+
+  const streaks: Partial<Record<'morning' | 'evening', number>> = {};
+  for (const key of ['morning', 'evening'] as const) {
+    let streak = 0;
+    for (let day = today; day >= windowStart; day = addDays(day, -1)) {
+      const slot = slotsOn(day).find((s) => s.key === key);
+      if (!slot) continue;
+      if (slot.taken) streak += 1;
+      else if (day !== today) break;
+    }
+    streaks[key] = streak;
+  }
+  return streaks;
 }

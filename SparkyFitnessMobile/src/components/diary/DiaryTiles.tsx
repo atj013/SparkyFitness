@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import Svg, { Circle, ClipPath, Defs, G, Path, Rect } from 'react-native-svg';
 import { useCSSVariable } from 'uniwind';
-import { getDueDosesForDate } from '@workspace/shared';
+import { addDays, getDueDosesForDate } from '@workspace/shared';
 
 import Icon from '../Icon';
 import { formatLocalizedNumber } from '../../localization';
@@ -17,14 +17,20 @@ import {
   useMedicationEntries,
   useMedications,
 } from '../../hooks/useMedications';
-import { getDeviceTimezone } from '../../utils/dateUtils';
+import { getDeviceTimezone, getTodayDate } from '../../utils/dateUtils';
 import { computeWeightChanges } from '../../utils/weightChanges';
 import { doseSlotStatus } from '../../utils/medications';
 import { selectPrnMedications } from '../../utils/medicationAdherence';
 import {
   buildDiaryMedsSlots,
+  diaryMedsSlotStreaks,
   type DiaryMedsSlot,
 } from '../../utils/diaryMedsSlots';
+import {
+  HABIT_CIRCLE,
+  HABIT_COLUMN_CLASS,
+  HabitStreak,
+} from './DiaryHabitsCard';
 import {
   WATER_UNIT_LABELS,
   formatVolumeForUnit,
@@ -38,6 +44,8 @@ const TILE_CLASS = 'flex-1 bg-surface rounded-xl shadow-sm px-3 py-3';
 // Steps is one short card the width of the Diary, under the food card.
 const WIDE_TILE_CLASS = 'bg-surface rounded-xl shadow-sm px-3 py-2';
 const STEP_BAR_MAX_HEIGHT = 22;
+/** Days looked back for the meds circles' streaks. */
+const MEDS_STREAK_DAYS = 90;
 
 // Each tile's title is in its own Diary card color. Pass the whole class
 // name (never build it from parts) so Tailwind can see it.
@@ -465,7 +473,10 @@ interface MedsTileProps {
   date: string;
   enabled: boolean;
   onPressTitle: () => void;
-  /** Drawn as the bottom row of the habits card: title left, circles right. */
+  /**
+   * Drawn as more circles in the habits card's row: no title (a long press
+   * opens the medications), each scheduled circle with its streak under it.
+   */
   inline?: boolean;
 }
 
@@ -497,6 +508,28 @@ export const MedsTile: React.FC<MedsTileProps> = ({
     entries
   );
   const deleteEntry = useDeleteMedicationEntry();
+
+  // The streaks under the inline circles count back from today.
+  const today = getTodayDate();
+  const streakStart = addDays(today, -(MEDS_STREAK_DAYS - 1));
+  const { data: streakEntries } = useMedicationEntries({
+    fromDate: streakStart,
+    toDate: today,
+    enabled: enabled && inline,
+  });
+  const streaks = useMemo(
+    () =>
+      inline && medications && streakEntries
+        ? diaryMedsSlotStreaks(
+            medications,
+            streakEntries,
+            today,
+            streakStart,
+            getDeviceTimezone()
+          )
+        : {},
+    [inline, medications, streakEntries, today, streakStart]
+  );
 
   const slots = useMemo(() => {
     if (!medications) return [];
@@ -536,12 +569,95 @@ export const MedsTile: React.FC<MedsTileProps> = ({
     }
   };
 
-  // Inline it is a row under the habits, set off by a line; on its own, a
-  // short card the width of the Diary.
-  const containerClass = inline
-    ? 'flex-row items-center gap-3 border-t border-border-subtle pt-2'
-    : `${WIDE_TILE_CLASS} gap-1`;
+  const slotA11yLabel = (slot: DiaryMedsSlot) =>
+    t('diary.tiles.medsSlotA11y', {
+      defaultValue: '{{name}}, {{status}}',
+      name: label(slot),
+      status: slot.taken
+        ? t('diary.tiles.medsTaken', { defaultValue: 'taken' })
+        : t('diary.tiles.medsNotTaken', {
+            defaultValue: 'not taken',
+          }),
+    });
+  const slotStyle = (slot: DiaryMedsSlot) =>
+    slot.taken
+      ? { backgroundColor: accent }
+      : {
+          backgroundColor: emptyFill,
+          borderWidth: 1.5,
+          borderColor: ringColor,
+        };
+  const slotIcon = (slot: DiaryMedsSlot) => {
+    const ink = slot.taken ? onAccent : accent;
+    return slot.key === 'morning' ? (
+      <SunIcon color={ink} />
+    ) : slot.key === 'evening' ? (
+      <SunsetIcon color={ink} />
+    ) : (
+      <LeafIcon color={ink} />
+    );
+  };
 
+  if (inline) {
+    if (isLoadingMeds || isLoadingEntries) {
+      return (
+        <View className={HABIT_COLUMN_CLASS} style={{ height: HABIT_CIRCLE }}>
+          <ActivityIndicator size="small" color={accent} />
+        </View>
+      );
+    }
+    return (
+      <>
+        {slots.map((slot) => {
+          const streak = slot.key === 'asNeeded' ? null : streaks[slot.key];
+          return (
+            <Pressable
+              key={slot.key}
+              className={`${HABIT_COLUMN_CLASS} active:opacity-80`}
+              onPress={() => press(slot)}
+              onLongPress={onPressTitle}
+              accessibilityRole="button"
+              accessibilityState={{ selected: slot.taken }}
+              accessibilityLabel={[
+                slotA11yLabel(slot),
+                streak == null
+                  ? null
+                  : t('diary.habits.streakA11y', {
+                      count: streak,
+                      defaultValue: '{{count}} day streak',
+                      defaultValue_one: '{{count}} day streak',
+                      defaultValue_other: '{{count}} day streak',
+                    }),
+              ]
+                .filter(Boolean)
+                .join(', ')}
+              accessibilityHint={t('diary.tiles.medsLongPressHint', {
+                defaultValue: 'Long press to open your medications',
+              })}
+              testID={`diary-meds-${slot.key}`}
+            >
+              <View
+                className="rounded-full items-center justify-center"
+                style={[
+                  { width: HABIT_CIRCLE, height: HABIT_CIRCLE },
+                  slotStyle(slot),
+                ]}
+              >
+                {slotIcon(slot)}
+              </View>
+              <HabitStreak
+                streak={streak}
+                color={accent}
+                hidden={slot.key === 'asNeeded'}
+              />
+            </Pressable>
+          );
+        })}
+      </>
+    );
+  }
+
+  const containerClass = `${WIDE_TILE_CLASS} gap-1`;
   if (isLoadingMeds || isLoadingEntries) {
     return (
       <View className={`${containerClass} items-center justify-center`}>
@@ -565,51 +681,22 @@ export const MedsTile: React.FC<MedsTileProps> = ({
           colorClass="text-diary-meds"
         />
       </Pressable>
-      <View
-        className={`flex-1 flex-row items-center ${
-          inline ? 'justify-end gap-3' : 'justify-around'
-        }`}
-      >
-        {slots.map((slot) => {
-          const ink = slot.taken ? onAccent : accent;
-          return (
-            <Pressable
-              key={slot.key}
-              onPress={() => press(slot)}
-              accessibilityRole="button"
-              accessibilityState={{ selected: slot.taken }}
-              accessibilityLabel={t('diary.tiles.medsSlotA11y', {
-                defaultValue: '{{name}}, {{status}}',
-                name: label(slot),
-                status: slot.taken
-                  ? t('diary.tiles.medsTaken', { defaultValue: 'taken' })
-                  : t('diary.tiles.medsNotTaken', {
-                      defaultValue: 'not taken',
-                    }),
-              })}
-              hitSlop={4}
-              className="w-[36px] h-[36px] rounded-full items-center justify-center"
-              style={
-                slot.taken
-                  ? { backgroundColor: accent }
-                  : {
-                      backgroundColor: emptyFill,
-                      borderWidth: 1.5,
-                      borderColor: ringColor,
-                    }
-              }
-              testID={`diary-meds-${slot.key}`}
-            >
-              {slot.key === 'morning' ? (
-                <SunIcon color={ink} />
-              ) : slot.key === 'evening' ? (
-                <SunsetIcon color={ink} />
-              ) : (
-                <LeafIcon color={ink} />
-              )}
-            </Pressable>
-          );
-        })}
+      <View className="flex-1 flex-row items-center justify-around">
+        {slots.map((slot) => (
+          <Pressable
+            key={slot.key}
+            onPress={() => press(slot)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: slot.taken }}
+            accessibilityLabel={slotA11yLabel(slot)}
+            hitSlop={4}
+            className="w-[36px] h-[36px] rounded-full items-center justify-center"
+            style={slotStyle(slot)}
+            testID={`diary-meds-${slot.key}`}
+          >
+            {slotIcon(slot)}
+          </Pressable>
+        ))}
       </View>
     </View>
   );

@@ -8,11 +8,39 @@ import type { HabitKey, HabitState } from '../../hooks/useDailyHabits';
 
 interface DiaryHabitsCardProps {
   habits: Record<HabitKey, HabitState>;
-  /** Drawn under the habits in the same card (the Diary puts Meds here). */
+  /** More circles in the same row after the habits (the Diary's meds). */
   children?: ReactNode;
 }
 
-const CIRCLE = 34;
+/** Circle size shared by the habits and the meds in the row. */
+export const HABIT_CIRCLE = 36;
+/** One circle's column: the circle, then its streak. */
+export const HABIT_COLUMN_CLASS = 'flex-1 items-center gap-1';
+
+/**
+ * The flame and day count under a circle. With no streak to show (an as-needed
+ * dose) it keeps the line's height so every circle stays level.
+ */
+export const HabitStreak: React.FC<{
+  streak: number | null | undefined;
+  color: string;
+  hidden?: boolean;
+}> = ({ streak, color, hidden = false }) => (
+  <View
+    className="flex-row items-center gap-0.5 h-[14px]"
+    importantForAccessibility="no-hide-descendants"
+    accessibilityElementsHidden
+  >
+    {hidden ? null : (
+      <>
+        <Icon name="flame" size={11} color={color} />
+        <Text className="text-[11px] text-text-secondary">
+          {streak == null ? '–' : formatLocalizedNumber(streak)}
+        </Text>
+      </>
+    )}
+  </View>
+);
 
 const HABITS: {
   key: HabitKey;
@@ -25,9 +53,11 @@ const HABITS: {
 ];
 
 /**
- * A thin row of habit circles at the foot of the Diary's first screen. A tap logs the habit:
- * Brush + Floss fills half for the morning and whole for the night, the others
- * fill at once, and a full circle tapped again empties. Each shows its streak.
+ * One row of circles at the foot of the Diary's first screen, the habits and
+ * then whatever is passed in (the meds), each with its streak under it and no
+ * words; screen readers get the names. A tap logs the habit: Brush + Floss
+ * fills half for the morning and whole for the night, the others fill at once,
+ * and a full circle tapped again empties.
  */
 const DiaryHabitsCard: React.FC<DiaryHabitsCardProps> = ({
   habits,
@@ -55,91 +85,74 @@ const DiaryHabitsCard: React.FC<DiaryHabitsCardProps> = ({
 
   return (
     <View
-      className="bg-surface rounded-xl shadow-sm px-3 py-2 gap-2"
+      className="bg-surface rounded-xl shadow-sm px-2 py-2 flex-row items-start"
       testID="diary-habits-card"
     >
-      <View className="flex-row gap-2">
-        {HABITS.map(({ key, icon }, index) => {
-          const habit = habits[key];
-          const color = colors[index]!;
-          const streakLabel =
-            habit.streak == null
-              ? null
-              : t('diary.habits.streakA11y', {
-                  count: habit.streak,
-                  defaultValue: '{{count}} day streak',
-                  defaultValue_one: '{{count}} day streak',
-                  defaultValue_other: '{{count}} day streak',
-                });
-          return (
-            <Pressable
-              key={key}
-              testID={`diary-habit-${key}`}
-              className="flex-1 flex-row items-center gap-2 active:opacity-80"
-              onPress={() => void habit.toggle()}
-              disabled={habit.busy}
-              accessibilityRole="button"
-              accessibilityState={{ busy: habit.busy }}
-              accessibilityLabel={[
-                labels[key],
-                stateLabel(key, habit.level),
-                streakLabel,
-              ]
-                .filter(Boolean)
-                .join(', ')}
+      {HABITS.map(({ key, icon }, index) => {
+        const habit = habits[key];
+        const color = colors[index]!;
+        const streakLabel =
+          habit.streak == null
+            ? null
+            : t('diary.habits.streakA11y', {
+                count: habit.streak,
+                defaultValue: '{{count}} day streak',
+                defaultValue_one: '{{count}} day streak',
+                defaultValue_other: '{{count}} day streak',
+              });
+        return (
+          <Pressable
+            key={key}
+            testID={`diary-habit-${key}`}
+            className={`${HABIT_COLUMN_CLASS} active:opacity-80`}
+            onPress={() => void habit.toggle()}
+            disabled={habit.busy}
+            accessibilityRole="button"
+            accessibilityState={{ busy: habit.busy }}
+            accessibilityLabel={[
+              labels[key],
+              stateLabel(key, habit.level),
+              streakLabel,
+            ]
+              .filter(Boolean)
+              .join(', ')}
+          >
+            <View
+              testID={`diary-habit-${key}-level-${habit.level}`}
+              className="items-center justify-center rounded-full overflow-hidden"
+              style={{
+                width: HABIT_CIRCLE,
+                height: HABIT_CIRCLE,
+                borderWidth: 2,
+                borderColor: color,
+              }}
             >
-              <View
-                testID={`diary-habit-${key}-level-${habit.level}`}
-                className="items-center justify-center rounded-full overflow-hidden"
-                style={{
-                  width: CIRCLE,
-                  height: CIRCLE,
-                  borderWidth: 2,
-                  borderColor: color,
-                }}
-              >
-                {habit.level > 0 ? (
-                  <View
-                    className="absolute left-0 right-0 bottom-0"
-                    style={{
-                      height: habit.level === 2 ? '100%' : '50%',
-                      backgroundColor: color,
-                    }}
-                  />
-                ) : null}
-                {habit.busy ? (
-                  <ActivityIndicator
-                    size="small"
-                    color={habit.level === 2 ? onColor : color}
-                  />
-                ) : (
-                  <Icon
-                    name={icon}
-                    size={18}
-                    color={habit.level === 2 ? onColor : color}
-                  />
-                )}
-              </View>
-              <View className="flex-1">
-                <Text
-                  className="text-xs font-semibold text-text-primary"
-                  numberOfLines={1}
-                >
-                  {labels[key]}
-                </Text>
-                <View className="flex-row items-center gap-0.5">
-                  <Icon name="flame" size={11} color={color} />
-                  <Text className="text-[11px] text-text-secondary">
-                    {habit.streak == null
-                      ? '–'
-                      : formatLocalizedNumber(habit.streak)}
-                  </Text>
-                </View>
-              </View>
-            </Pressable>
-          );
-        })}
-      </View>
+              {habit.level > 0 ? (
+                <View
+                  className="absolute left-0 right-0 bottom-0"
+                  style={{
+                    height: habit.level === 2 ? '100%' : '50%',
+                    backgroundColor: color,
+                  }}
+                />
+              ) : null}
+              {habit.busy ? (
+                <ActivityIndicator
+                  size="small"
+                  color={habit.level === 2 ? onColor : color}
+                />
+              ) : (
+                <Icon
+                  name={icon}
+                  size={18}
+                  color={habit.level === 2 ? onColor : color}
+                />
+              )}
+            </View>
+            <HabitStreak streak={habit.streak} color={color} />
+          </Pressable>
+        );
+      })}
       {children}
     </View>
   );

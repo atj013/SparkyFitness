@@ -1,6 +1,7 @@
 import { getDueDosesForDate } from '@workspace/shared';
 import {
   buildDiaryMedsSlots,
+  diaryMedsSlotStreaks,
   isMorningDose,
 } from '../../src/utils/diaryMedsSlots';
 import {
@@ -143,5 +144,46 @@ describe('buildDiaryMedsSlots', () => {
       buildDiaryMedsSlots(morningOnly, [], [], DAY).map((s) => s.key)
     ).toEqual(['morning']);
     expect(buildDiaryMedsSlots([], [], [], DAY)).toEqual([]);
+  });
+});
+
+describe('diaryMedsSlotStreaks', () => {
+  const took = (id: string, schedule: string, med: string, day: string) =>
+    buildEntry({
+      id,
+      medication_id: med,
+      schedule_id: schedule,
+      entry_date: day,
+    });
+
+  it('counts the days in a row each circle was filled; today stays open', () => {
+    const entries = [
+      took('a', 'vit-am', 'vit', '2026-10-12'),
+      took('b', 'vit-am', 'vit', '2026-10-13'),
+      took('c', 'eve-pm', 'eve', '2026-10-13'),
+    ];
+    const streaks = diaryMedsSlotStreaks(
+      [vitamin, evening],
+      entries,
+      DAY,
+      '2026-10-01',
+      'UTC'
+    );
+    // Morning: the 12th and 13th, today not yet. Evening: the 13th only.
+    expect(streaks).toEqual({ morning: 2, evening: 1 });
+  });
+
+  it('counts today once its circle is filled', () => {
+    const streaks = diaryMedsSlotStreaks(
+      [vitamin],
+      [
+        took('a', 'vit-am', 'vit', '2026-10-13'),
+        took('b', 'vit-am', 'vit', DAY),
+      ],
+      DAY,
+      '2026-10-01',
+      'UTC'
+    );
+    expect(streaks.morning).toBe(2);
   });
 });

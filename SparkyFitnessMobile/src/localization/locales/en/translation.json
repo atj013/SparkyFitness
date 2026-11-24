@@ -1619,6 +1619,7 @@
       "medsMorning": "Morning medications",
       "medsEvening": "Afternoon and evening medications",
       "medsSlotA11y": "{{name}}, {{status}}",
+      "medsLongPressHint": "Long press to open your medications",
       "medsTaken": "taken",
       "medsNotTaken": "not taken"
     },
