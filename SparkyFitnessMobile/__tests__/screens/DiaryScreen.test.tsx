@@ -6,9 +6,7 @@ import DiaryScreen from '../../src/screens/DiaryScreen';
 import type DateNavigatorComponent from '../../src/components/DateNavigator';
 import {
   useDailySummary,
-  useCustomNutrients,
   useFamilyUsers,
-  useNutrientDisplayPreferences,
   useServerConnection,
 } from '../../src/hooks';
 import { useMeasurements } from '../../src/hooks/useMeasurements';
@@ -58,9 +56,7 @@ jest.mock('../../src/hooks/useOfflineDiaryDay', () => ({
 jest.mock('../../src/hooks', () => ({
   useServerConnection: jest.fn(),
   useDailySummary: jest.fn(),
-  useCustomNutrients: jest.fn(),
   useFamilyUsers: jest.fn(),
-  useNutrientDisplayPreferences: jest.fn(),
   useMealTypes: jest.fn(() => ({
     mealTypes: [],
     isLoading: false,
@@ -264,11 +260,6 @@ jest.mock('../../src/components/ExerciseSummary', () => {
   };
 });
 
-jest.mock('../../src/components/DiaryCalorieMacroSummary', () => {
-  const { View } = require('react-native');
-  return { __esModule: true, default: () => <View testID="macro-summary" /> };
-});
-
 jest.mock('../../src/hooks/useWaterIntakeMutation', () => ({
   useWaterIntakeMutation: () => ({
     increment: jest.fn(),
@@ -298,16 +289,9 @@ const mockUseServerConnection = useServerConnection as jest.MockedFunction<
 const mockUseDailySummary = useDailySummary as jest.MockedFunction<
   typeof useDailySummary
 >;
-const mockUseCustomNutrients = useCustomNutrients as jest.MockedFunction<
-  typeof useCustomNutrients
->;
 const mockUseFamilyUsers = useFamilyUsers as jest.MockedFunction<
   typeof useFamilyUsers
 >;
-const mockUseNutrientDisplayPreferences =
-  useNutrientDisplayPreferences as jest.MockedFunction<
-    typeof useNutrientDisplayPreferences
-  >;
 const mockUseMeasurements = useMeasurements as jest.MockedFunction<
   typeof useMeasurements
 >;
@@ -361,8 +345,6 @@ const buildFoodEntry = (id: string): FoodEntry => ({
 
 const refetchSummary = jest.fn();
 const refetchMeasurements = jest.fn();
-const refetchCustomNutrients = jest.fn();
-const refetchNutrientPrefs = jest.fn();
 const refetchSleep = jest.fn();
 
 const mockUseSleepDay = useSleepDay as jest.MockedFunction<typeof useSleepDay>;
@@ -415,14 +397,6 @@ const configureOnlineData = (
     isError: false,
     refetch: refetchMeasurements,
   } as ReturnType<typeof useMeasurements>);
-  mockUseCustomNutrients.mockReturnValue({
-    customNutrients: [],
-    refetch: refetchCustomNutrients,
-  } as ReturnType<typeof useCustomNutrients>);
-  mockUseNutrientDisplayPreferences.mockReturnValue({
-    preferences: [],
-    refetch: refetchNutrientPrefs,
-  } as ReturnType<typeof useNutrientDisplayPreferences>);
 };
 
 const insets = { top: 0, bottom: 0, left: 0, right: 0 };
@@ -456,25 +430,7 @@ describe('DiaryScreen custom queries', () => {
     configureOnlineData();
   });
 
-  test('Test A — custom queries are disabled offline', () => {
-    configureConnection(false);
-
-    renderScreen();
-
-    expect(mockUseCustomNutrients).toHaveBeenCalledWith(
-      expect.objectContaining({ enabled: false })
-    );
-  });
-
-  test('Test B — custom queries are enabled online', () => {
-    renderScreen();
-
-    expect(mockUseCustomNutrients).toHaveBeenCalledWith(
-      expect.objectContaining({ enabled: true })
-    );
-  });
-
-  test('Test C — pull-to-refresh refetches custom data', async () => {
+  test('Test C — pull-to-refresh refetches the day', async () => {
     const { UNSAFE_getByType } = renderScreen();
 
     const refreshControl = UNSAFE_getByType(RefreshControl);
@@ -484,8 +440,6 @@ describe('DiaryScreen custom queries', () => {
 
     expect(refetchSummary).toHaveBeenCalledTimes(1);
     expect(refetchMeasurements).toHaveBeenCalledTimes(1);
-    expect(refetchCustomNutrients).toHaveBeenCalledTimes(1);
-    expect(refetchNutrientPrefs).toHaveBeenCalledTimes(1);
   });
 
   test('Test D — offline pull-to-refresh does not fire network', () => {
@@ -496,7 +450,7 @@ describe('DiaryScreen custom queries', () => {
     // Offline renders the StatusView without a ScrollView, so there is no
     // RefreshControl surface at all and no refetch can be triggered.
     expect(UNSAFE_queryByType(RefreshControl)).toBeNull();
-    expect(refetchCustomNutrients).not.toHaveBeenCalled();
+    expect(refetchMeasurements).not.toHaveBeenCalled();
     expect(refetchSummary).not.toHaveBeenCalled();
   });
 
@@ -564,10 +518,12 @@ describe('DiaryScreen custom queries', () => {
   test('Test G — a failing custom refetch does not block the other refetches nor throw', async () => {
     const refetchReject = jest.fn().mockRejectedValue(new Error('boom'));
     configureOnlineData();
-    mockUseCustomNutrients.mockReturnValue({
-      customNutrients: [],
+    mockUseMeasurements.mockReturnValue({
+      measurements: null,
+      isLoading: false,
+      isError: false,
       refetch: refetchReject,
-    } as unknown as ReturnType<typeof useCustomNutrients>);
+    } as unknown as ReturnType<typeof useMeasurements>);
     const { UNSAFE_getByType, UNSAFE_queryByType } = renderScreen();
 
     const refreshControl = UNSAFE_queryByType(RefreshControl);
@@ -579,8 +535,6 @@ describe('DiaryScreen custom queries', () => {
 
     // Every other query still ran.
     expect(refetchSummary).toHaveBeenCalled();
-    expect(refetchMeasurements).toHaveBeenCalled();
-    expect(refetchNutrientPrefs).toHaveBeenCalled();
     // Spinner tears down after the rejected query.
     expect(UNSAFE_getByType(RefreshControl).props.refreshing).toBe(false);
   });
@@ -792,7 +746,6 @@ describe('DiaryScreen sleep cards', () => {
     const { getByTestId, UNSAFE_root } = renderScreen();
 
     const order = [
-      'macro-summary',
       'diary-food-card',
       'diary-sleep-card',
       'diary-plan-card',

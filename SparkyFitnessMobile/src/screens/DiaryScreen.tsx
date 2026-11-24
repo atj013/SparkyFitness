@@ -39,7 +39,6 @@ import CalendarSheet, {
 } from '../components/CalendarSheet';
 import CheckInPhotosSummary from '../components/CheckInPhotosSummary';
 import DateNavigator from '../components/DateNavigator';
-import DiaryCalorieMacroSummary from '../components/DiaryCalorieMacroSummary';
 import ExerciseSummary from '../components/ExerciseSummary';
 import DiaryFoodCard, {
   MIN_FOOD_CARD_HEIGHT,
@@ -63,11 +62,9 @@ import OfflineBanner from '../components/OfflineBanner';
 import { useOfflineDiaryDay } from '../hooks/useOfflineDiaryDay';
 import { mergeWaitingWorkouts } from '../offline/diaryDay';
 import {
-  useCustomNutrients,
   useDailySummary,
   useFamilyUsers,
   useMealTypes,
-  useNutrientDisplayPreferences,
   useServerConnection,
 } from '../hooks';
 import { useWorkoutPresets } from '../hooks/useWorkoutPresets';
@@ -91,6 +88,7 @@ import { useSleepDay } from '../hooks/useSleepDay';
 import { useNativeIOSTabsActive } from '../services/nativeTabBarPreference';
 import { useVerticalBar } from '../hooks/useVerticalBar';
 import { useActiveWorkoutStore } from '../stores/activeWorkoutStore';
+import { useAppPreferencesStore } from '../stores/appPreferencesStore';
 import { useDiaryDateStore } from '../stores/diaryDateStore';
 import type { RootStackParamList, TabParamList } from '../types/navigation';
 import type {
@@ -334,10 +332,11 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ navigation }) => {
     date: selectedDate,
     enabled: isConnected,
   });
-  const { customNutrients, refetch: refetchCustomNutrients } =
-    useCustomNutrients({ enabled: isConnected });
-  const { preferences: nutrientPrefs, refetch: refetchNutrientPrefs } =
-    useNutrientDisplayPreferences({ enabled: isConnected });
+  // The Diary Summary switch (Diary settings) shows protein and fiber in the
+  // Food card's header.
+  const diarySummaryVisible = useAppPreferencesStore(
+    (s) => s.diarySummaryVisible
+  );
 
   const {
     wakeUp,
@@ -348,13 +347,6 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ navigation }) => {
     refetch: refetchSleep,
   } = useSleepDay(selectedDate, { enabled: isConnected });
 
-  const diaryNutrientRow = nutrientPrefs.find(
-    (p) => p.view_group === 'diary' && p.platform === 'mobile'
-  );
-  const customNutrientKeys = (diaryNutrientRow?.visible_nutrients ?? []).slice(
-    0,
-    4
-  );
   const { startLiveWorkout } = useStartLiveWorkout(navigation);
   const { plans: activePlans } = useActiveWorkoutPlans(selectedDate);
   const { presets: allPresets } = useWorkoutPresets();
@@ -502,21 +494,12 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ navigation }) => {
       await Promise.allSettled([
         refetch(),
         refetchMeasurements(),
-        refetchCustomNutrients(),
-        refetchNutrientPrefs(),
         refetchSleep(),
       ]);
     } finally {
       setRefreshing(false);
     }
-  }, [
-    isConnected,
-    refetch,
-    refetchMeasurements,
-    refetchCustomNutrients,
-    refetchNutrientPrefs,
-    refetchSleep,
-  ]);
+  }, [isConnected, refetch, refetchMeasurements, refetchSleep]);
 
   const isRefreshing = refreshing;
 
@@ -750,16 +733,13 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ navigation }) => {
           onLayout={storeRounded(setFirstScreenHeight)}
           testID="diary-first-screen"
         >
-          {showMacroSummary && (
-            <DiaryCalorieMacroSummary
-              summary={summary}
-              showNetCarbs={preferences?.show_net_carbs === true}
-              customNutrientKeys={customNutrientKeys}
-              customNutrients={customNutrients}
-            />
-          )}
           <DiaryFoodCard
             foodEntries={summary.foodEntries}
+            macros={
+              showMacroSummary && diarySummaryVisible
+                ? { protein: summary.protein, fiber: summary.fiber }
+                : undefined
+            }
             mealTypes={mealTypes}
             onAddFood={() =>
               navigation.navigate('FoodSearch', { date: selectedDate })

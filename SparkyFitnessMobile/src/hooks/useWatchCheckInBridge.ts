@@ -456,8 +456,7 @@ export function useWatchCheckInBridge(enabled: boolean): void {
   );
 
   // EVERY calorie figure sent to the watch comes from this one object — the
-  // same one the phone's own summary bar (DiaryCalorieMacroSummary) and the
-  // iOS home-screen widget read.
+  // same one the iOS home-screen widget reads.
   //
   // The flatter `summary.caloriesBurned` / `caloriesConsumed` /
   // `remainingCalories` fields are rawer inputs and do NOT agree with it:
