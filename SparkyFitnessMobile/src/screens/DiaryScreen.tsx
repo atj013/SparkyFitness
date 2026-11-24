@@ -85,6 +85,7 @@ import { useHeaderActionColors } from '../hooks/useHeaderActionColors';
 import { useMeasurements } from '../hooks/useMeasurements';
 import { useOpenWorkout } from '../hooks/useOpenWorkout';
 import { useDailyHabits } from '../hooks/useDailyHabits';
+import { walksAndRuns } from '../utils/diaryWalksRuns';
 import { usePreferences } from '../hooks/usePreferences';
 import { useSleepDay } from '../hooks/useSleepDay';
 import { useNativeIOSTabsActive } from '../services/nativeTabBarPreference';
@@ -720,6 +721,12 @@ const DiaryScreen: React.FC<DiaryScreenProps> = ({ navigation }) => {
             enabled={isConnected}
             onPress={() =>
               navigation.navigate('MeasurementsReport', { range: '7d' })
+            }
+            moves={walksAndRuns(exerciseEntries)}
+            distanceUnit={distanceUnit}
+            onOpenMove={openWorkout}
+            onOpenMoves={() =>
+              navigation.navigate('TrainingCalendar', { date: selectedDate })
             }
           />
           {/* Sleep and the planned workout share one row of tiles; either

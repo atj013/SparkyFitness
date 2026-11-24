@@ -132,6 +132,8 @@ const ICON_MAP = {
   // Neither SF Symbols nor Ionicons draw a tooth, so both platforms use the
   // Material Community glyph (`mci`); `sf`/`ion` stay for the type's shape.
   'oral-care': { sf: 'mouth', ion: 'happy-outline', mci: 'tooth-outline' },
+  'move-run': { sf: 'figure.run', ion: 'walk-outline', mci: 'run' },
+  'move-walk': { sf: 'figure.walk', ion: 'walk-outline', mci: 'walk' },
   meditation: {
     sf: 'figure.mind.and.body',
     ion: 'leaf-outline',

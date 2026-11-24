@@ -3,7 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import Svg, { Circle, ClipPath, Defs, G, Path, Rect } from 'react-native-svg';
 import { useCSSVariable } from 'uniwind';
-import { addDays, getDueDosesForDate } from '@workspace/shared';
+import {
+  addDays,
+  getDueDosesForDate,
+  type IndividualSessionResponse,
+} from '@workspace/shared';
 
 import Icon from '../Icon';
 import { formatLocalizedNumber } from '../../localization';
@@ -19,6 +23,7 @@ import {
 } from '../../hooks/useMedications';
 import { getDeviceTimezone, getTodayDate } from '../../utils/dateUtils';
 import { computeWeightChanges } from '../../utils/weightChanges';
+import type { DiaryMove } from '../../utils/diaryWalksRuns';
 import { doseSlotStatus } from '../../utils/medications';
 import { selectPrnMedications } from '../../utils/medicationAdherence';
 import {
@@ -33,6 +38,7 @@ import {
 } from './DiaryHabitsCard';
 import {
   WATER_UNIT_LABELS,
+  distanceFromKm,
   formatVolumeForUnit,
   formatWeightDisplay,
   volumeFromMl,
@@ -182,7 +188,17 @@ interface StepsTileProps {
   goal: number;
   enabled: boolean;
   onPress: () => void;
+  /** The day's walks and runs from the watch, shown under the count. */
+  moves?: DiaryMove[];
+  distanceUnit?: 'km' | 'miles';
+  /** Opens one walk or run. */
+  onOpenMove?: (session: IndividualSessionResponse) => void;
+  /** Opens the day's workouts, when there are too many to list. */
+  onOpenMoves?: () => void;
 }
+
+/** Walks and runs listed one by one; more than this become one summary. */
+const MOVES_LISTED = 2;
 
 export const StepsTile: React.FC<StepsTileProps> = ({
   date,
@@ -190,8 +206,37 @@ export const StepsTile: React.FC<StepsTileProps> = ({
   goal,
   enabled,
   onPress,
+  moves = [],
+  distanceUnit = 'km',
+  onOpenMove,
+  onOpenMoves,
 }) => {
   const { t } = useTranslation();
+  const distanceText = (km: number) => {
+    const value = formatLocalizedNumber(
+      Math.round(distanceFromKm(km, distanceUnit) * 10) / 10
+    );
+    return distanceUnit === 'miles'
+      ? t('diary.tiles.moveMiles', { defaultValue: '{{value}} mi', value })
+      : t('diary.tiles.moveKm', { defaultValue: '{{value}} km', value });
+  };
+  const minutesText = (minutes: number) =>
+    t('diary.tiles.moveMinutes', {
+      defaultValue: '{{value}} min',
+      value: formatLocalizedNumber(Math.round(minutes)),
+    });
+  const moveDetails = (move: DiaryMove) =>
+    [
+      move.distanceKm != null ? distanceText(move.distanceKm) : null,
+      minutesText(move.minutes),
+    ]
+      .filter(Boolean)
+      .join(' · ');
+  const kindLabel = (move: DiaryMove) =>
+    move.kind === 'run'
+      ? t('diary.tiles.moveRun', { defaultValue: 'Run' })
+      : t('diary.tiles.moveWalk', { defaultValue: 'Walk' });
+  const totalKm = moves.reduce((sum, m) => sum + (m.distanceKm ?? 0), 0);
   const [accent, trackColor, textSecondary] = useCSSVariable([
     '--color-diary-steps',
     '--color-progress-track',
@@ -201,7 +246,6 @@ export const StepsTile: React.FC<StepsTileProps> = ({
   const week = stepsData.slice(-7);
   const max = Math.max(1, goal, ...week.map((d) => d.steps));
   const value = Math.max(0, steps ?? 0);
-  const percent = goal > 0 ? Math.round((value / goal) * 100) : null;
 
   return (
     <Pressable
@@ -211,61 +255,105 @@ export const StepsTile: React.FC<StepsTileProps> = ({
         defaultValue: '{{value}} steps. Open this week’s steps',
         value: formatLocalizedNumber(value),
       })}
-      className={`${WIDE_TILE_CLASS} flex-row items-center gap-3`}
+      className={`${WIDE_TILE_CLASS} gap-1.5`}
       testID="diary-steps-tile"
     >
-      <View className="flex-1">
-        <TileTitle
-          title={t('diary.tiles.steps', { defaultValue: 'Steps' })}
-          colorClass="text-diary-steps"
-          chevron={false}
-        />
-        <View className="flex-row items-baseline gap-1.5">
-          <Text
-            className="text-[17px] font-bold text-text-primary"
-            numberOfLines={1}
-          >
-            {formatLocalizedNumber(value)}
-          </Text>
-          {percent !== null ? (
+      <View className="flex-row items-center gap-3">
+        <View className="flex-1">
+          <TileTitle
+            title={t('diary.tiles.steps', { defaultValue: 'Steps' })}
+            colorClass="text-diary-steps"
+            chevron={false}
+          />
+          <View className="flex-row items-baseline gap-1.5">
             <Text
-              className="text-[12px] text-text-secondary shrink"
+              className="text-[17px] font-bold text-text-primary"
               numberOfLines={1}
             >
-              {t('diary.tiles.stepsOfGoal', {
-                defaultValue: '{{percent}}% of {{goal}}',
-                percent: formatLocalizedNumber(percent),
-                goal: formatLocalizedNumber(goal),
-              })}
+              {formatLocalizedNumber(value)}
             </Text>
-          ) : null}
+          </View>
         </View>
+        <View
+          className="flex-row items-end gap-1.5"
+          style={{ minHeight: STEP_BAR_MAX_HEIGHT }}
+        >
+          {week.map((d) => {
+            const height =
+              d.steps > 0
+                ? Math.max(3, Math.round((d.steps / max) * STEP_BAR_MAX_HEIGHT))
+                : 2;
+            const isDay = d.day === date;
+            return (
+              <View
+                key={d.day}
+                style={{
+                  width: 10,
+                  height,
+                  borderRadius: 3,
+                  backgroundColor: d.steps > 0 ? accent : trackColor,
+                  opacity: d.steps > 0 && !isDay ? 0.45 : 1,
+                }}
+              />
+            );
+          })}
+        </View>
+        <Icon name="chevron-forward" size={16} color={textSecondary} />
       </View>
-      <View
-        className="flex-row items-end gap-1.5"
-        style={{ minHeight: STEP_BAR_MAX_HEIGHT }}
-      >
-        {week.map((d) => {
-          const height =
-            d.steps > 0
-              ? Math.max(3, Math.round((d.steps / max) * STEP_BAR_MAX_HEIGHT))
-              : 2;
-          const isDay = d.day === date;
-          return (
-            <View
-              key={d.day}
-              style={{
-                width: 10,
-                height,
-                borderRadius: 3,
-                backgroundColor: d.steps > 0 ? accent : trackColor,
-                opacity: d.steps > 0 && !isDay ? 0.45 : 1,
-              }}
-            />
-          );
-        })}
-      </View>
-      <Icon name="chevron-forward" size={16} color={textSecondary} />
+      {moves.length > 0 ? (
+        <View className="flex-row flex-wrap gap-1.5" testID="diary-steps-moves">
+          {moves.length <= MOVES_LISTED ? (
+            moves.map((move) => (
+              <Pressable
+                key={move.session.id}
+                onPress={() => onOpenMove?.(move.session)}
+                disabled={!onOpenMove}
+                accessibilityRole="button"
+                accessibilityLabel={t('diary.tiles.moveA11y', {
+                  defaultValue: '{{kind}}, {{details}}. Open it',
+                  kind: kindLabel(move),
+                  details: moveDetails(move),
+                })}
+                className="flex-row items-center gap-1 rounded-full px-2 py-1 bg-raised active:opacity-80"
+                testID={`diary-steps-move-${move.session.id}`}
+              >
+                <Icon
+                  name={move.kind === 'run' ? 'move-run' : 'move-walk'}
+                  size={14}
+                  color={accent}
+                />
+                <Text className="text-[12px] text-text-primary">
+                  {moveDetails(move)}
+                </Text>
+              </Pressable>
+            ))
+          ) : (
+            <Pressable
+              onPress={onOpenMoves}
+              disabled={!onOpenMoves}
+              accessibilityRole="button"
+              className="flex-row items-center gap-1 rounded-full px-2 py-1 bg-raised active:opacity-80"
+              testID="diary-steps-moves-summary"
+            >
+              <Icon name="move-walk" size={14} color={accent} />
+              <Text className="text-[12px] text-text-primary">
+                {[
+                  t('diary.tiles.movesCount', {
+                    count: moves.length,
+                    formattedCount: formatLocalizedNumber(moves.length),
+                    defaultValue: '{{formattedCount}} walks and runs',
+                    defaultValue_one: '{{formattedCount}} walk or run',
+                    defaultValue_other: '{{formattedCount}} walks and runs',
+                  }),
+                  totalKm > 0 ? distanceText(totalKm) : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </Text>
+            </Pressable>
+          )}
+        </View>
+      ) : null}
     </Pressable>
   );
 };
