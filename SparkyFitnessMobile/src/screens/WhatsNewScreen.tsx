@@ -214,7 +214,7 @@ const LiquidGlassMockup: React.FC = () => {
     },
     {
       name: 'book',
-      label: t('navigation.library', { defaultValue: 'Library' }),
+      label: t('navigation.hub', { defaultValue: 'Hub' }),
     },
     {
       name: 'settings',

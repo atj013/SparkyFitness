@@ -184,6 +184,7 @@ const ICON_MAP = {
   logs: { sf: 'doc.plaintext', ion: 'document-text-outline' },
   about: { sf: 'info.circle', ion: 'information-circle-outline' },
   'whats-new': { sf: 'gift', ion: 'gift-outline' },
+  notifications: { sf: 'bell', ion: 'notifications-outline' },
 
   // AI features
   sparkles: { sf: 'sparkles', ion: 'sparkles' },

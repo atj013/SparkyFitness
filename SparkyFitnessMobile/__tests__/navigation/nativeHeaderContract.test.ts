@@ -641,16 +641,21 @@ describe('native header navigation contract', () => {
 
     const nativeTabScreens = extractScreenNames(tabsSource, 'NativeTab');
     const missingContentTabs = missingFrom(nonAddTabs, nativeTabScreens);
-    const missingStackScreens = nonAddTabs.filter(
-      (name) =>
+    // A tab whose title differs from its route name (this fork shows the
+    // Library route as "Hub").
+    const tabTitles: Record<string, string> = { Library: 'Hub' };
+    const missingStackScreens = nonAddTabs.filter((name) => {
+      const title = tabTitles[name] ?? name;
+      return (
         !new RegExp(`function ${name}StackScreen\\(`).test(tabsSource) ||
         !new RegExp(
           `${name}Stack\\.Navigator[\\s\\S]*${name}Stack\\.Screen`
         ).test(tabsSource) ||
         !new RegExp(
-          `${name}Stack\\.Screen[\\s\\S]*title:\\s*(?:'${name}'|t\\([^)]*defaultValue:\\s*'${name}'[^)]*\\))`
+          `${name}Stack\\.Screen[\\s\\S]*title:\\s*(?:'${title}'|t\\([^)]*defaultValue:\\s*'${title}'[^)]*\\))`
         ).test(tabsSource)
-    );
+      );
+    });
 
     if (missingContentTabs.length > 0 || missingStackScreens.length > 0) {
       failNativeHeaderContract(

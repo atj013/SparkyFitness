@@ -23,6 +23,7 @@ import Button from '../components/ui/Button';
 import CreateTile from '../components/CreateTile';
 import FoodLibraryRow from '../components/FoodLibraryRow';
 import Icon from '../components/Icon';
+import SettingsRow, { SettingsRowGroup } from '../components/SettingsRow';
 import { programTitle } from '../components/recording/RunProgramCard';
 import { useRunProgram } from '../services/runProgramService';
 import MealLibraryRow from '../components/MealLibraryRow';
@@ -61,6 +62,17 @@ type RecentItem =
   | { type: 'food'; data: FoodItem }
   | { type: 'exercise'; data: Exercise };
 
+/** A row's item count before its chevron; a dash until it has loaded. */
+const RowCount: React.FC<{ value: number | undefined }> = ({ value }) => {
+  const mutedColor = useCSSVariable('--color-text-secondary') as string;
+  return (
+    <View className="flex-row items-center">
+      <Text className="text-text-secondary text-base mr-2">{value ?? '-'}</Text>
+      <Icon name="chevron-forward" size={20} color={mutedColor} />
+    </View>
+  );
+};
+
 const LibraryScreen: React.FC<LibraryScreenProps> = ({ navigation }) => {
   const { t } = useTranslation();
   const { status: storedProgram, enabled: programEnabled } = useRunProgram();
@@ -73,7 +85,13 @@ const LibraryScreen: React.FC<LibraryScreenProps> = ({ navigation }) => {
   const usesNativeTabs = useNativeIOSTabsActive();
   const verticalBar = useVerticalBar();
   const accentColor = useCSSVariable('--color-accent-primary') as string;
-  const mutedColor = useCSSVariable('--color-text-muted') as string;
+  const [catOrange, catBlue, catPink, catViolet, hydration] = useCSSVariable([
+    '--color-cat-orange',
+    '--color-cat-blue',
+    '--color-cat-pink',
+    '--color-cat-violet',
+    '--color-hydration',
+  ]) as [string, string, string, string, string];
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { isNavigationLocked, runNavigationAction } =
     useNavigationActionGuard(navigation);
@@ -287,24 +305,18 @@ const LibraryScreen: React.FC<LibraryScreenProps> = ({ navigation }) => {
       {!usesNativeTabs && (
         <View className="mb-6">
           <Text className="text-2xl font-bold text-text-primary">
-            {t('screens.library.title', { defaultValue: 'Library' })}
+            {t('screens.library.hubTitle', { defaultValue: 'Hub' })}
           </Text>
         </View>
       )}
 
-      <View className="mb-3">
-        <Text className="text-lg font-semibold text-text-primary">
-          {t('screens.library.create', { defaultValue: 'Create' })}
-        </Text>
-      </View>
-
-      <View className="flex-row flex-wrap justify-between mb-6">
+      <Text className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-2 px-1">
+        {t('screens.library.createNew', { defaultValue: 'Create new' })}
+      </Text>
+      <View className="flex-row gap-2 mb-6">
         <CreateTile
           icon="food"
           title={t('screens.library.food', { defaultValue: 'Food' })}
-          subtitle={t('screens.library.manualEntry', {
-            defaultValue: 'Manual entry',
-          })}
           disabled={isNavigationLocked}
           onPress={() =>
             runNavigationAction(() =>
@@ -314,42 +326,31 @@ const LibraryScreen: React.FC<LibraryScreenProps> = ({ navigation }) => {
               })
             )
           }
-          className="w-[48%] mb-3"
+          className="flex-1"
         />
         <CreateTile
           icon="meal"
           title={t('screens.library.meal', { defaultValue: 'Meal' })}
-          subtitle={t('screens.library.groupFoods', {
-            defaultValue: 'Group foods',
-          })}
           disabled={isNavigationLocked}
           onPress={() =>
             runNavigationAction(() => navigation.navigate('MealAdd'))
           }
-          className="w-[48%] mb-3"
+          className="flex-1"
         />
         <CreateTile
           icon="exercise-weights"
           title={t('screens.library.exercise', { defaultValue: 'Exercise' })}
-          subtitle={t('screens.library.manualEntry', {
-            defaultValue: 'Manual entry',
-          })}
           disabled={isNavigationLocked}
           onPress={() =>
             runNavigationAction(() =>
               navigation.navigate('ExerciseForm', { mode: 'create-exercise' })
             )
           }
-          className="w-[48%] mb-3"
+          className="flex-1"
         />
         <CreateTile
           icon="bookmark-filled"
-          title={t('screens.library.workoutPreset', {
-            defaultValue: 'Workout preset',
-          })}
-          subtitle={t('screens.library.exerciseRoutine', {
-            defaultValue: 'Exercise routine',
-          })}
+          title={t('screens.library.preset', { defaultValue: 'Preset' })}
           disabled={isNavigationLocked}
           onPress={() =>
             runNavigationAction(() =>
@@ -358,320 +359,223 @@ const LibraryScreen: React.FC<LibraryScreenProps> = ({ navigation }) => {
               })
             )
           }
-          className="w-[48%] mb-3"
+          className="flex-1"
         />
       </View>
 
-      <View className="mb-3">
-        <Text className="text-lg font-semibold text-text-primary">
-          {t('screens.library.browse', { defaultValue: 'Browse' })}
-        </Text>
-      </View>
-
-      <View className="bg-surface rounded-xl mb-6 shadow-sm overflow-hidden">
-        <Pressable
-          className="px-4 py-4 flex-row items-center justify-between border-b border-border-subtle"
+      <SettingsRowGroup
+        title={t('screens.library.sections.food', {
+          defaultValue: 'Food & drink',
+        })}
+      >
+        <SettingsRow
+          icon="food"
+          iconColor={catOrange}
+          title={t('screens.library.foods', { defaultValue: 'Foods' })}
+          rightAccessory={<RowCount value={foodsCount} />}
           onPress={() => navigation.navigate('FoodsLibrary')}
-          style={({ pressed }) => (pressed ? { opacity: 0.7 } : null)}
-        >
-          <Text className="text-base font-semibold text-text-primary">
-            {t('screens.library.foods', { defaultValue: 'Foods' })}
-          </Text>
-          <View className="flex-row items-center">
-            <Text className="text-text-secondary text-base mr-2">
-              {foodsCount ?? '-'}
-            </Text>
-            <Icon name="chevron-forward" size={20} color="#999" />
-          </View>
-        </Pressable>
-
-        <Pressable
-          className="px-4 py-4 flex-row items-center justify-between border-b border-border-subtle"
+        />
+        <SettingsRow
+          icon="meal"
+          iconColor={catOrange}
+          title={t('screens.library.meals', { defaultValue: 'Meals' })}
+          rightAccessory={<RowCount value={meals.length} />}
           onPress={() => navigation.navigate('MealsLibrary')}
-          style={({ pressed }) => (pressed ? { opacity: 0.7 } : null)}
-        >
-          <Text className="text-base font-semibold text-text-primary">
-            {t('screens.library.meals', { defaultValue: 'Meals' })}
-          </Text>
-          <View className="flex-row items-center">
-            <Text className="text-text-secondary text-base mr-2">
-              {meals.length}
-            </Text>
-            <Icon name="chevron-forward" size={20} color="#999" />
-          </View>
-        </Pressable>
+        />
         {mealPlansOn && (
-          <Pressable
-            className="px-4 py-4 flex-row items-center justify-between border-b border-border-subtle"
-            onPress={() => navigation.navigate('MealPlans')}
-            style={({ pressed }) => (pressed ? { opacity: 0.7 } : null)}
-          >
-            <View className="flex-1 mr-3">
-              <Text className="text-base font-semibold text-text-primary">
-                {t('screens.library.mealPlans', { defaultValue: 'Meal plans' })}
-              </Text>
-              <Text className="text-sm text-text-secondary mt-0.5">
-                {t('screens.library.mealPlansSubtitle', {
-                  defaultValue: 'Repeat meals on selected days',
-                })}
-              </Text>
-            </View>
-            <Icon name="chevron-forward" size={20} color="#999" />
-          </Pressable>
-        )}
-        <Pressable
-          className="px-4 py-4 flex-row items-center justify-between border-b border-border-subtle"
-          onPress={() => navigation.navigate('WorkoutPlans')}
-          style={({ pressed }) => (pressed ? { opacity: 0.7 } : null)}
-        >
-          <View className="flex-1 mr-3">
-            <Text className="text-base font-semibold text-text-primary">
-              {t('screens.library.workoutPlans', {
-                defaultValue: 'Workout plans',
-              })}
-            </Text>
-            <Text className="text-sm text-text-secondary mt-0.5">
-              {t('screens.library.workoutPlansSubtitle', {
-                defaultValue: 'Schedule workouts across the week',
-              })}
-            </Text>
-          </View>
-          <Icon name="chevron-forward" size={20} color="#999" />
-        </Pressable>
-        <Pressable
-          className="px-4 py-4 flex-row items-center justify-between border-b border-border-subtle"
-          onPress={() => navigation.navigate('TrainingCalendar')}
-          style={({ pressed }) => (pressed ? { opacity: 0.7 } : null)}
-        >
-          <View className="flex-1 mr-3">
-            <Text className="text-base font-semibold text-text-primary">
-              {t('screens.library.trainingCalendar', {
-                defaultValue: 'Training calendar',
-              })}
-            </Text>
-            <Text className="text-sm text-text-secondary mt-0.5">
-              {t('screens.library.trainingCalendarSubtitle', {
-                defaultValue:
-                  'Planned and completed workouts, and load by sport',
-              })}
-            </Text>
-          </View>
-          <Icon name="chevron-forward" size={20} color={mutedColor} />
-        </Pressable>
-        <Pressable
-          className="px-4 py-4 flex-row items-center justify-between border-b border-border-subtle"
-          onPress={() => navigation.navigate('RunPrograms')}
-          style={({ pressed }) => (pressed ? { opacity: 0.7 } : null)}
-        >
-          <View className="flex-1 mr-3">
-            <Text className="text-base font-semibold text-text-primary">
-              {t('screens.library.runPrograms', {
-                defaultValue: 'Training programs',
-              })}
-            </Text>
-            <Text className="text-sm text-text-secondary mt-0.5">
-              {activeProgram
-                ? t('screens.library.runProgramsActive', {
-                    name: programTitle(t, activeProgram.program),
-                    progress: t('recordActivity.program.workoutsDone', {
-                      done: activeProgram.done,
-                      total: activeProgram.total,
-                      defaultValue: '{{done}} of {{total}} workouts',
-                    }),
-                    defaultValue: '{{name}} · {{progress}}',
-                  })
-                : t('screens.library.runProgramsSubtitle', {
-                    defaultValue:
-                      'Run and walk plans from Beginner 5K to marathon',
-                  })}
-            </Text>
-          </View>
-          <Icon name="chevron-forward" size={20} color="#999" />
-        </Pressable>
-        <Pressable
-          className="px-4 py-4 flex-row items-center justify-between border-b border-border-subtle"
-          onPress={() => navigation.navigate('Challenges')}
-          style={({ pressed }) => (pressed ? { opacity: 0.7 } : null)}
-        >
-          <View className="flex-1 mr-3">
-            <Text className="text-base font-semibold text-text-primary">
-              {t('screens.library.challenges', {
-                defaultValue: 'Challenges',
-              })}
-            </Text>
-            <Text className="text-sm text-text-secondary mt-0.5">
-              {t('screens.library.challengesSubtitle', {
-                defaultValue: 'Group leaderboards with friends and family',
-              })}
-            </Text>
-          </View>
-          <Icon name="chevron-forward" size={20} color="#999" />
-        </Pressable>
-        {isFeatureOn('labResults') && (
-          <Pressable
-            className="px-4 py-4 flex-row items-center justify-between border-b border-border-subtle"
-            onPress={() => navigation.navigate('LabResults')}
-            style={({ pressed }) => (pressed ? { opacity: 0.7 } : null)}
-          >
-            <View className="flex-1 mr-3">
-              <Text className="text-base font-semibold text-text-primary">
-                {t('screens.library.labResults', {
-                  defaultValue: 'Lab results',
-                })}
-              </Text>
-              <Text className="text-sm text-text-secondary mt-0.5">
-                {t('screens.library.labResultsSubtitle', {
-                  defaultValue: 'Blood tests and other markers over time',
-                })}
-              </Text>
-            </View>
-            <Icon name="chevron-forward" size={20} color="#999" />
-          </Pressable>
-        )}
-        {routesOn && (
-          <Pressable
-            className="px-4 py-4 flex-row items-center justify-between border-b border-border-subtle"
-            onPress={() => navigation.navigate('Routes')}
-            style={({ pressed }) => (pressed ? { opacity: 0.7 } : null)}
-          >
-            <View className="flex-1 mr-3">
-              <Text className="text-base font-semibold text-text-primary">
-                {t('screens.library.routes', { defaultValue: 'Routes' })}
-              </Text>
-              <Text className="text-sm text-text-secondary mt-0.5">
-                {t('screens.library.routesSubtitle', {
-                  defaultValue: 'Draw, import and save routes to follow',
-                })}
-              </Text>
-            </View>
-            <Icon name="chevron-forward" size={20} color="#999" />
-          </Pressable>
-        )}
-        <Pressable
-          className="px-4 py-4 flex-row items-center justify-between border-b border-border-subtle"
-          onPress={() => navigation.navigate('PersonalRecords')}
-          style={({ pressed }) => (pressed ? { opacity: 0.7 } : null)}
-        >
-          <View className="flex-1 mr-3">
-            <Text className="text-base font-semibold text-text-primary">
-              {t('screens.library.personalRecords', {
-                defaultValue: 'Personal records',
-              })}
-            </Text>
-            <Text className="text-sm text-text-secondary mt-0.5">
-              {t('screens.library.personalRecordsSubtitle', {
-                defaultValue: 'Your best 1 km, 5 km, 10 km and more',
-              })}
-            </Text>
-          </View>
-          <Icon name="chevron-forward" size={20} color="#999" />
-        </Pressable>
-        <Pressable
-          className="px-4 py-4 flex-row items-center justify-between border-b border-border-subtle"
-          onPress={() => navigation.navigate('ExercisesLibrary')}
-          style={({ pressed }) => (pressed ? { opacity: 0.7 } : null)}
-        >
-          <Text className="text-base font-semibold text-text-primary">
-            {t('screens.library.exercises', { defaultValue: 'Exercises' })}
-          </Text>
-          <View className="flex-row items-center">
-            <Text className="text-text-secondary text-base mr-2">
-              {exercisesCount ?? '-'}
-            </Text>
-            <Icon name="chevron-forward" size={20} color="#999" />
-          </View>
-        </Pressable>
-        <Pressable
-          className="px-4 py-4 flex-row items-center justify-between border-b border-border-subtle"
-          onPress={() => navigation.navigate('WorkoutPresetsLibrary')}
-          style={({ pressed }) => (pressed ? { opacity: 0.7 } : null)}
-        >
-          <Text className="text-base font-semibold text-text-primary">
-            {t('screens.library.workoutPresets', {
-              defaultValue: 'Workout presets',
+          <SettingsRow
+            icon="calendar"
+            iconColor={catOrange}
+            title={t('screens.library.mealPlans', {
+              defaultValue: 'Meal plans',
             })}
-          </Text>
-          <View className="flex-row items-center">
-            <Text className="text-text-secondary text-base mr-2">
-              {presetsCount ?? '-'}
-            </Text>
-            <Icon name="chevron-forward" size={20} color="#999" />
-          </View>
-        </Pressable>
-        <Pressable
-          className="px-4 py-4 flex-row items-center justify-between border-b border-border-subtle"
-          onPress={() => navigation.navigate('Equipment')}
-          style={({ pressed }) => (pressed ? { opacity: 0.7 } : null)}
-        >
-          <View className="flex-1 mr-3">
-            <Text className="text-base font-semibold text-text-primary">
-              {t('screens.library.equipment', { defaultValue: 'Equipment' })}
-            </Text>
-            <Text className="text-sm text-text-secondary mt-0.5">
-              {t('screens.library.equipmentSubtitle', {
-                defaultValue: 'Shoes and other gear',
-              })}
-            </Text>
-          </View>
-          <Icon name="chevron-forward" size={20} color="#999" />
-        </Pressable>
-        <Pressable
-          className="px-4 py-4 flex-row items-center justify-between border-b border-border-subtle"
-          onPress={() => navigation.navigate('Reports')}
-          style={({ pressed }) => (pressed ? { opacity: 0.7 } : null)}
-        >
-          <View className="flex-1 mr-3">
-            <Text className="text-base font-semibold text-text-primary">
-              {t('screens.library.reports', { defaultValue: 'Reports' })}
-            </Text>
-            <Text className="text-sm text-text-secondary mt-0.5">
-              {t('screens.library.reportsSubtitle', {
-                defaultValue: 'Nutrition, sleep, mood and exercise trends',
-              })}
-            </Text>
-          </View>
-          <Icon name="chevron-forward" size={20} color="#999" />
-        </Pressable>
-        <Pressable
-          className="px-4 py-4 flex-row items-center justify-between border-b border-border-subtle"
+            subtitle={t('screens.library.mealPlansSubtitle', {
+              defaultValue: 'Repeat meals on selected days',
+            })}
+            subtitleNumberOfLines={0}
+            onPress={() => navigation.navigate('MealPlans')}
+          />
+        )}
+        <SettingsRow
+          icon="water"
+          iconColor={hydration}
+          title={t('screens.library.waterContainers', {
+            defaultValue: 'Water containers',
+          })}
+          subtitle={t('screens.library.waterContainersSubtitle', {
+            defaultValue: 'Bottles, glasses, and drinks linked to foods',
+          })}
+          subtitleNumberOfLines={0}
+          rightAccessory={<RowCount value={waterContainers.length} />}
           onPress={() => navigation.navigate('WaterContainers')}
-          style={({ pressed }) => (pressed ? { opacity: 0.7 } : null)}
-        >
-          <View className="flex-1 mr-3">
-            <Text className="text-base font-semibold text-text-primary">
-              {t('screens.library.waterContainers', {
-                defaultValue: 'Water containers',
-              })}
-            </Text>
-            <Text className="text-sm text-text-secondary mt-0.5">
-              {t('screens.library.waterContainersSubtitle', {
-                defaultValue: 'Bottles, glasses, and drinks linked to foods',
-              })}
-            </Text>
-          </View>
-          <View className="flex-row items-center">
-            <Text className="text-text-secondary text-base mr-2">
-              {waterContainers.length}
-            </Text>
-            <Icon name="chevron-forward" size={20} color="#999" />
-          </View>
-        </Pressable>
-        <Pressable
-          className="px-4 py-4 flex-row items-center justify-between"
+        />
+      </SettingsRowGroup>
+
+      <SettingsRowGroup
+        title={t('screens.library.sections.training', {
+          defaultValue: 'Training',
+        })}
+      >
+        <SettingsRow
+          icon="list"
+          iconColor={catBlue}
+          title={t('screens.library.workoutPlans', {
+            defaultValue: 'Workout plans',
+          })}
+          subtitle={t('screens.library.workoutPlansSubtitle', {
+            defaultValue: 'Schedule workouts across the week',
+          })}
+          subtitleNumberOfLines={0}
+          onPress={() => navigation.navigate('WorkoutPlans')}
+        />
+        <SettingsRow
+          icon="exercise-running"
+          iconColor={catBlue}
+          title={t('screens.library.runPrograms', {
+            defaultValue: 'Training programs',
+          })}
+          subtitle={
+            activeProgram
+              ? t('screens.library.runProgramsActive', {
+                  name: programTitle(t, activeProgram.program),
+                  progress: t('recordActivity.program.workoutsDone', {
+                    done: activeProgram.done,
+                    total: activeProgram.total,
+                    defaultValue: '{{done}} of {{total}} workouts',
+                  }),
+                  defaultValue: '{{name}} · {{progress}}',
+                })
+              : t('screens.library.runProgramsSubtitle', {
+                  defaultValue:
+                    'Run and walk plans from Beginner 5K to marathon',
+                })
+          }
+          subtitleNumberOfLines={0}
+          onPress={() => navigation.navigate('RunPrograms')}
+        />
+        <SettingsRow
+          icon="calendar"
+          iconColor={catBlue}
+          title={t('screens.library.trainingCalendar', {
+            defaultValue: 'Training calendar',
+          })}
+          subtitle={t('screens.library.trainingCalendarSubtitle', {
+            defaultValue: 'Planned and completed workouts, and load by sport',
+          })}
+          subtitleNumberOfLines={0}
+          onPress={() => navigation.navigate('TrainingCalendar')}
+        />
+        <SettingsRow
+          icon="bookmark-filled"
+          iconColor={catBlue}
+          title={t('screens.library.workoutPresets', {
+            defaultValue: 'Workout presets',
+          })}
+          rightAccessory={<RowCount value={presetsCount} />}
+          onPress={() => navigation.navigate('WorkoutPresetsLibrary')}
+        />
+        <SettingsRow
+          icon="exercise-weights"
+          iconColor={catBlue}
+          title={t('screens.library.exercises', { defaultValue: 'Exercises' })}
+          rightAccessory={<RowCount value={exercisesCount} />}
+          onPress={() => navigation.navigate('ExercisesLibrary')}
+        />
+        {routesOn && (
+          <SettingsRow
+            icon="location"
+            iconColor={catBlue}
+            title={t('screens.library.routes', { defaultValue: 'Routes' })}
+            subtitle={t('screens.library.routesSubtitle', {
+              defaultValue: 'Draw, import and save routes to follow',
+            })}
+            subtitleNumberOfLines={0}
+            onPress={() => navigation.navigate('Routes')}
+          />
+        )}
+        <SettingsRow
+          icon="wrench"
+          iconColor={catBlue}
+          title={t('screens.library.equipment', { defaultValue: 'Equipment' })}
+          subtitle={t('screens.library.equipmentSubtitle', {
+            defaultValue: 'Shoes and other gear',
+          })}
+          subtitleNumberOfLines={0}
+          onPress={() => navigation.navigate('Equipment')}
+        />
+      </SettingsRowGroup>
+
+      <SettingsRowGroup
+        title={t('screens.library.sections.health', {
+          defaultValue: 'Health',
+        })}
+      >
+        <SettingsRow
+          icon="medication"
+          iconColor={catPink}
+          title={t('screens.library.medications', {
+            defaultValue: 'Medications',
+          })}
+          rightAccessory={<RowCount value={medications?.length} />}
           onPress={() => navigation.navigate('MedicationsList')}
-          style={({ pressed }) => (pressed ? { opacity: 0.7 } : null)}
-        >
-          <Text className="text-base font-semibold text-text-primary">
-            {t('screens.library.medications', { defaultValue: 'Medications' })}
-          </Text>
-          <View className="flex-row items-center">
-            <Text className="text-text-secondary text-base mr-2">
-              {medications?.length ?? '-'}
-            </Text>
-            <Icon name="chevron-forward" size={20} color="#999" />
-          </View>
-        </Pressable>
-      </View>
+        />
+        {isFeatureOn('labResults') && (
+          <SettingsRow
+            icon="lab-results"
+            iconColor={catPink}
+            title={t('screens.library.labResults', {
+              defaultValue: 'Lab results',
+            })}
+            subtitle={t('screens.library.labResultsSubtitle', {
+              defaultValue: 'Blood tests and other markers over time',
+            })}
+            subtitleNumberOfLines={0}
+            onPress={() => navigation.navigate('LabResults')}
+          />
+        )}
+      </SettingsRowGroup>
+
+      <SettingsRowGroup
+        title={t('screens.library.sections.progress', {
+          defaultValue: 'Progress',
+        })}
+        className="mb-6"
+      >
+        <SettingsRow
+          icon="chart-bar"
+          iconColor={catViolet}
+          title={t('screens.library.reports', { defaultValue: 'Reports' })}
+          subtitle={t('screens.library.reportsSubtitle', {
+            defaultValue: 'Nutrition, sleep, mood and exercise trends',
+          })}
+          subtitleNumberOfLines={0}
+          onPress={() => navigation.navigate('Reports')}
+        />
+        <SettingsRow
+          icon="trophy"
+          iconColor={catViolet}
+          title={t('screens.library.personalRecords', {
+            defaultValue: 'Personal records',
+          })}
+          subtitle={t('screens.library.personalRecordsSubtitle', {
+            defaultValue: 'Your best 1 km, 5 km, 10 km and more',
+          })}
+          subtitleNumberOfLines={0}
+          onPress={() => navigation.navigate('PersonalRecords')}
+        />
+        <SettingsRow
+          icon="people"
+          iconColor={catViolet}
+          title={t('screens.library.challenges', {
+            defaultValue: 'Challenges',
+          })}
+          subtitle={t('screens.library.challengesSubtitle', {
+            defaultValue: 'Group leaderboards with friends and family',
+          })}
+          subtitleNumberOfLines={0}
+          onPress={() => navigation.navigate('Challenges')}
+        />
+      </SettingsRowGroup>
 
       <View className="mb-3">
         <Text className="text-lg font-semibold text-text-primary">

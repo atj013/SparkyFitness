@@ -110,7 +110,6 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
     catOrange,
     catCalories,
     hydration,
-    macroGreen,
     catTeal,
     catBlue,
   ] = useCSSVariable([
@@ -122,11 +121,9 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
     '--color-cat-orange',
     '--color-calories',
     '--color-hydration',
-    '--color-cat-green',
     '--color-cat-teal',
     '--color-cat-blue',
   ]) as [
-    string,
     string,
     string,
     string,
@@ -224,39 +221,39 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
             </View>
           )}
 
-          <SettingsRow
-            icon="server"
-            title={t('settings.rows.server', { defaultValue: 'Server' })}
-            subtitle={serverSubtitle}
-            onPress={() => navigation.navigate('ServerSettings')}
-            iconColor={catSlate}
-            accessibilityLabel={
-              activeConfig
-                ? isConnected
-                  ? t('settings.serverConnected', {
-                      defaultValue: 'Server settings. Connected.',
-                    })
-                  : t('settings.serverConnectionFailed', {
-                      defaultValue: 'Server settings. Connection failed.',
-                    })
-                : t('settings.serverNotConfigured', {
-                    defaultValue: 'Server settings. No server configured.',
-                  })
-            }
-          />
-
-          {activeConfig && (
-            <SettingsRow
-              icon="cloud-offline"
-              title={t('settings.rows.offline', { defaultValue: 'Offline' })}
-              onPress={() => navigation.navigate('OfflineSettings')}
-              iconColor={catSlate}
-            />
-          )}
-
-          <SectionErrorBoundary
-            sectionName={t('settings.title', { defaultValue: 'Settings' })}
+          <SettingsRowGroup
+            title={t('settings.sections.connection', {
+              defaultValue: 'Connection',
+            })}
           >
+            <SettingsRow
+              icon="server"
+              title={t('settings.rows.server', { defaultValue: 'Server' })}
+              subtitle={serverSubtitle}
+              onPress={() => navigation.navigate('ServerSettings')}
+              iconColor={catSlate}
+              accessibilityLabel={
+                activeConfig
+                  ? isConnected
+                    ? t('settings.serverConnected', {
+                        defaultValue: 'Server settings. Connected.',
+                      })
+                    : t('settings.serverConnectionFailed', {
+                        defaultValue: 'Server settings. Connection failed.',
+                      })
+                  : t('settings.serverNotConfigured', {
+                      defaultValue: 'Server settings. No server configured.',
+                    })
+              }
+            />
+            {activeConfig && (
+              <SettingsRow
+                icon="cloud-offline"
+                title={t('settings.rows.offline', { defaultValue: 'Offline' })}
+                onPress={() => navigation.navigate('OfflineSettings')}
+                iconColor={catSlate}
+              />
+            )}
             <SettingsRow
               icon="health-data-sync"
               title={t('settings.rows.healthSync', {
@@ -266,33 +263,31 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
               onPress={() => navigation.navigate('Sync')}
               iconColor={catPink}
             />
-
-            <SettingsRowGroup>
+            {isConnected && familyDiaryOn && (
               <SettingsRow
-                icon="app-settings"
-                title={t('settings.rows.app', { defaultValue: 'App Settings' })}
-                onPress={() => navigation.navigate('AppSettings')}
-                iconColor={catViolet}
+                icon="people"
+                title={t('familyDiary.title', {
+                  defaultValue: 'Family Diaries',
+                })}
+                onPress={() => navigation.navigate('FamilyMembers')}
+                iconColor={catTeal}
               />
-              {isConnected && familyDiaryOn && (
+            )}
+          </SettingsRowGroup>
+
+          <SectionErrorBoundary
+            sectionName={t('settings.title', { defaultValue: 'Settings' })}
+          >
+            {isConnected && (
+              <SettingsRowGroup
+                title={t('settings.sections.you', { defaultValue: 'You' })}
+              >
                 <SettingsRow
-                  icon="people"
-                  title={t('familyDiary.title', {
-                    defaultValue: 'Family Diaries',
-                  })}
-                  onPress={() => navigation.navigate('FamilyMembers')}
-                  iconColor={catTeal}
-                />
-              )}
-              {isConnected && (
-                <SettingsRow
-                  icon="calorie-settings"
+                  icon="trophy-outline"
                   title={t('settings.rows.goals', { defaultValue: 'Goals' })}
                   onPress={() => navigation.navigate('Goals')}
                   iconColor={catCalories}
                 />
-              )}
-              {isConnected && (
                 <SettingsRow
                   icon="calorie-settings"
                   title={t('settings.rows.calories', {
@@ -301,62 +296,6 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
                   onPress={() => navigation.navigate('CalorieSettings')}
                   iconColor={catCalories}
                 />
-              )}
-              {isConnected && (
-                <SettingsRow
-                  icon="microphone"
-                  title={t('voiceSettings.open', {
-                    defaultValue: 'Voice settings',
-                  })}
-                  onPress={() => navigation.navigate('ChatSettings')}
-                  iconColor={catBlue}
-                />
-              )}
-              {isConnected && (
-                <SettingsRow
-                  icon="food-search-settings"
-                  title={t('settings.rows.food', { defaultValue: 'Food' })}
-                  onPress={() => navigation.navigate('FoodSettings')}
-                  iconColor={catOrange}
-                />
-              )}
-              {isConnected && (
-                <SettingsRow
-                  icon="sparkles"
-                  title={t('settings.rows.ai', { defaultValue: 'AI' })}
-                  onPress={() => navigation.navigate('AiSettings')}
-                  iconColor={catTeal}
-                />
-              )}
-              {isConnected && (
-                <SettingsRow
-                  icon="feature-settings"
-                  title={t('settings.rows.features', {
-                    defaultValue: 'Features',
-                  })}
-                  onPress={() => navigation.navigate('FeatureSettings')}
-                  iconColor={catViolet}
-                />
-              )}
-              {isConnected && (
-                <SettingsRow
-                  icon="dashboard-settings"
-                  title={t('settings.rows.dashboard', {
-                    defaultValue: 'Dashboard',
-                  })}
-                  onPress={() => navigation.navigate('DashboardSettings')}
-                  iconColor={macroGreen}
-                />
-              )}
-              {isConnected && (
-                <SettingsRow
-                  icon="diary-settings"
-                  title={t('settings.rows.diary', { defaultValue: 'Diary' })}
-                  onPress={() => navigation.navigate('DiarySettings')}
-                  iconColor={catTeal}
-                />
-              )}
-              {isConnected && (
                 <SettingsRow
                   icon="measurements-settings"
                   title={t('settings.rows.customMeasurements', {
@@ -365,18 +304,6 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
                   onPress={() => navigation.navigate('CustomCategories')}
                   iconColor={catBlue}
                 />
-              )}
-              {isConnected && (
-                <SettingsRow
-                  icon="chart-bar"
-                  title={t('settings.rows.reports', {
-                    defaultValue: 'Reports',
-                  })}
-                  onPress={() => navigation.navigate('ReportsSettings')}
-                  iconColor={catBlue}
-                />
-              )}
-              {isConnected && (
                 <SettingsRow
                   icon="wellness"
                   title={
@@ -391,6 +318,21 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
                   onPress={() => navigation.navigate('CycleSettings')}
                   iconColor={catPink}
                 />
+              </SettingsRowGroup>
+            )}
+
+            <SettingsRowGroup
+              title={t('settings.sections.tracking', {
+                defaultValue: 'Tracking',
+              })}
+            >
+              {isConnected && (
+                <SettingsRow
+                  icon="food-search-settings"
+                  title={t('settings.rows.food', { defaultValue: 'Food' })}
+                  onPress={() => navigation.navigate('FoodSettings')}
+                  iconColor={catOrange}
+                />
               )}
               {isConnected && (
                 <SettingsRow
@@ -403,6 +345,37 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
                 />
               )}
               <SettingsRow
+                icon="workout-settings"
+                title={t('settings.rows.workout', { defaultValue: 'Workout' })}
+                onPress={() => navigation.navigate('WorkoutSettings')}
+                iconColor={catBlue}
+              />
+            </SettingsRowGroup>
+
+            <SettingsRowGroup
+              title={t('settings.sections.layout', {
+                defaultValue: 'Layout',
+              })}
+            >
+              {isConnected && (
+                <SettingsRow
+                  icon="feature-settings"
+                  title={t('settings.rows.features', {
+                    defaultValue: 'Features',
+                  })}
+                  onPress={() => navigation.navigate('FeatureSettings')}
+                  iconColor={catViolet}
+                />
+              )}
+              {isConnected && (
+                <SettingsRow
+                  icon="diary-settings"
+                  title={t('settings.rows.diary', { defaultValue: 'Diary' })}
+                  onPress={() => navigation.navigate('DiarySettings')}
+                  iconColor={catTeal}
+                />
+              )}
+              <SettingsRow
                 icon="add-circle"
                 title={t('settings.rows.addMenu', {
                   defaultValue: 'Quick Actions',
@@ -410,20 +383,56 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
                 onPress={() => navigation.navigate('AddMenuSettings')}
                 iconColor={catBlue}
               />
-              <SettingsRow
-                icon="workout-settings"
-                title={t('settings.rows.workout', { defaultValue: 'Workout' })}
-                onPress={() => navigation.navigate('WorkoutSettings')}
-                iconColor={catBlue}
-              />
-              {nfcSupported && (
+              {isConnected && (
                 <SettingsRow
-                  icon="nfc"
-                  title={t('settings.rows.nfcTags', {
-                    defaultValue: 'NFC tags',
+                  icon="chart-bar"
+                  title={t('settings.rows.reports', {
+                    defaultValue: 'Reports',
                   })}
-                  onPress={() => navigation.navigate('ActionTags')}
+                  onPress={() => navigation.navigate('ReportsSettings')}
                   iconColor={catBlue}
+                />
+              )}
+            </SettingsRowGroup>
+
+            <SettingsRowGroup
+              title={t('settings.sections.appDevices', {
+                defaultValue: 'App & devices',
+              })}
+            >
+              <SettingsRow
+                icon="app-settings"
+                title={t('settings.rows.app', { defaultValue: 'App Settings' })}
+                subtitle={t('settings.rows.appSubtitle', {
+                  defaultValue: 'Theme, language and sounds',
+                })}
+                onPress={() => navigation.navigate('AppSettings')}
+                iconColor={catViolet}
+              />
+              <SettingsRow
+                icon="notifications"
+                title={t('settings.rows.notifications', {
+                  defaultValue: 'Notifications',
+                })}
+                onPress={() => navigation.navigate('NotificationSettings')}
+                iconColor={catOrange}
+              />
+              {isConnected && (
+                <SettingsRow
+                  icon="sparkles"
+                  title={t('settings.rows.ai', { defaultValue: 'AI' })}
+                  onPress={() => navigation.navigate('AiSettings')}
+                  iconColor={catTeal}
+                />
+              )}
+              {isConnected && (
+                <SettingsRow
+                  icon="microphone"
+                  title={t('voiceSettings.open', {
+                    defaultValue: 'Voice settings',
+                  })}
+                  onPress={() => navigation.navigate('ChatSettings')}
+                  iconColor={catTeal}
                 />
               )}
               {hasPairedWatch && (
@@ -442,9 +451,22 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
                   iconColor={catSlate}
                 />
               )}
+              {nfcSupported && (
+                <SettingsRow
+                  icon="nfc"
+                  title={t('settings.rows.nfcTags', {
+                    defaultValue: 'NFC tags',
+                  })}
+                  onPress={() => navigation.navigate('ActionTags')}
+                  iconColor={catSlate}
+                />
+              )}
             </SettingsRowGroup>
 
-            <SettingsRowGroup>
+            <SettingsRowGroup
+              title={t('settings.sections.help', { defaultValue: 'Help' })}
+              className="mb-0"
+            >
               <SettingsRow
                 icon="whats-new"
                 title={t('settings.rows.whatsNew', {
@@ -460,6 +482,18 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
                 iconColor={catSlate}
               />
               <SettingsRow
+                icon="share"
+                title={t('settings.rows.shareReport', {
+                  defaultValue: 'Share Diagnostic Report',
+                })}
+                onPress={handleShareDiagnosticReport}
+                disabled={isSharing}
+                iconColor={catSlate}
+                rightAccessory={
+                  isSharing ? <ActivityIndicator size="small" /> : undefined
+                }
+              />
+              <SettingsRow
                 icon="info-circle"
                 title={t('settings.rows.about', { defaultValue: 'About' })}
                 onPress={() => navigation.navigate('About')}
@@ -467,18 +501,6 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
               />
             </SettingsRowGroup>
 
-            <SettingsRow
-              icon="share"
-              title={t('settings.rows.shareReport', {
-                defaultValue: 'Share Diagnostic Report',
-              })}
-              onPress={handleShareDiagnosticReport}
-              disabled={isSharing}
-              iconColor={catSlate}
-              rightAccessory={
-                isSharing ? <ActivityIndicator size="small" /> : undefined
-              }
-            />
             <Text className="text-text-secondary text-sm px-2 mb-4 mt-2">
               {t('settings.shareReportDescription', {
                 defaultValue:

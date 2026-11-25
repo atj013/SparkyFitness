@@ -428,11 +428,19 @@ describe('LibraryScreen', () => {
     expect(navigation.navigate).toHaveBeenCalledWith('WaterContainers');
   });
 
+  it('groups the rows under Food & drink, Training, Health and Progress', () => {
+    const screen = renderScreen();
+    for (const heading of ['Food & drink', 'Training', 'Health', 'Progress']) {
+      expect(screen.getByText(heading)).toBeTruthy();
+    }
+    expect(screen.getByText('Hub')).toBeTruthy();
+  });
+
   it('does not queue multiple create screens during the same navigation transition', () => {
     const screen = renderScreen();
 
     fireEvent.press(screen.getByText('Meal'));
-    fireEvent.press(screen.getByText('Workout preset'));
+    fireEvent.press(screen.getByText('Preset'));
 
     expect(navigation.navigate).toHaveBeenCalledTimes(1);
     expect(navigation.navigate).toHaveBeenCalledWith('MealAdd');

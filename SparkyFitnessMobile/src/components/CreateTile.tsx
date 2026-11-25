@@ -1,21 +1,20 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { Text, TouchableOpacity } from 'react-native';
 import { useCSSVariable } from 'uniwind';
 import Icon, { type IconName } from './Icon';
 
 interface CreateTileProps {
   icon: IconName;
   title: string;
-  subtitle: string;
   onPress: () => void;
   disabled?: boolean;
   className?: string;
 }
 
+/** A small icon-over-label button; four sit in one row on the Hub. */
 const CreateTile: React.FC<CreateTileProps> = ({
   icon,
   title,
-  subtitle,
   onPress,
   disabled = false,
   className = '',
@@ -27,22 +26,18 @@ const CreateTile: React.FC<CreateTileProps> = ({
       onPress={onPress}
       disabled={disabled}
       activeOpacity={0.7}
+      accessibilityRole="button"
       accessibilityState={{ disabled }}
       style={disabled ? { opacity: 0.7 } : undefined}
-      className={`bg-surface rounded-xl px-3 py-3 flex-row items-center shadow-sm ${className}`}
+      className={`bg-surface rounded-xl py-3 px-1 items-center shadow-sm ${className}`}
     >
-      <Icon name={icon} size={24} color={accentPrimary} />
-      <View className="flex-1 ml-4">
-        <Text
-          className="text-text-primary text-sm font-medium"
-          numberOfLines={1}
-        >
-          {title}
-        </Text>
-        <Text className="text-text-secondary text-xs" numberOfLines={1}>
-          {subtitle}
-        </Text>
-      </View>
+      <Icon name={icon} size={22} color={accentPrimary} />
+      <Text
+        className="text-text-primary text-xs font-medium mt-1"
+        numberOfLines={1}
+      >
+        {title}
+      </Text>
     </TouchableOpacity>
   );
 };

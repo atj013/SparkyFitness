@@ -1,6 +1,6 @@
 # AGENTS.md
 
-_Last updated: 2026-11-21_
+_Last updated: 2026-11-24_
 
 SparkyFitness Mobile is a React Native 0.86 + Expo SDK 57 app for syncing Apple Health / Health Connect data with the SparkyFitness backend, tracking nutrition, hydration, fasting, measurements, exercise, saved foods, meal templates, custom exercises, workout presets, iOS / Android widgets, the active workout HUD, and the Sparky AI chat.
 
@@ -70,7 +70,7 @@ npx expo prebuild --clean
 - `CompareReport` is a stack route (`SafeCompareReport`, title `screens.compareReport`) opened from the Reports hub.
 - Navigation source of truth is `App.tsx` plus `src/types/navigation.ts`; update both and the linking config when routes change.
 - Root stack uses `@react-navigation/native-stack`. Tabs use `@react-navigation/bottom-tabs`.
-- Tabs are `Library`, `Diary` and `Settings`, plus `Dashboard`, which is hidden but stays mounted for the jobs it hosts. This fork has no `Add` tab; the Quick Actions sheet (`AddSheet`) is opened from screens through `addSheetRef`.
+- Tabs are `Library`, `Diary` and `Settings`, plus `Dashboard`, which is hidden but stays mounted for the jobs it hosts. The `Library` route is labelled **Hub** (`navigation.hub`); its rows sit in `SettingsRowGroup` sections (Food & drink, Training, Health, Progress) under a row of four Create buttons. Settings is grouped the same way (Connection, You, Tracking, Layout, App & devices, Help) and has no Dashboard row, as the Dashboard cannot be opened on this fork. This fork has no `Add` tab; the Quick Actions sheet (`AddSheet`) is opened from screens through `addSheetRef`.
 - Native iOS Liquid Glass tabs use `@bottom-tabs/react-navigation` in `src/components/TabsLayout.tsx`; each content tab is wrapped in its own `createNativeStackNavigator` so the tab path still gets native headers. The `Add` tab uses `role: 'search'`, which the iOS 26 SDK draws as the detached round button. The iOS 27 SDK no longer does, so `patches/react-native-bottom-tabs@1.4.0.patch` (a pnpm patch) leaves the role off on iOS 27+ and sets the tab controller's `prominentTabIdentifier` (the iOS 27 API for a separated trailing tab) to that tab instead. Drop the patch once the library does this itself.
 - `TabsLayout` switches at runtime via `useNativeIOSTabsActive()` (`services/nativeTabBarPreference.ts`): native tabs require iOS 26+ Liquid Glass support AND the user's `liquidGlassTabBarEnabled` preference (opt-in). Everything else renders `CustomTabBar` (`TAB_BAR_HEIGHT = 56`); `ActiveWorkoutBar` reads the native tab-bar height instead when native tabs are active.
 - When adding a root-stack screen, add the route to `RootStackParamList` and register a matching `<Stack.Screen>` in `App.tsx` with `createStackScreenOptions(...)` or equivalent explicit iOS native-stack header options.

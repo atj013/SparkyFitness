@@ -173,7 +173,6 @@
       "features": "Features",
       "calories": "Calories & BMR",
       "food": "Food",
-      "dashboard": "Dashboard",
       "diary": "Diary",
       "wellness": "Wellness",
       "cyclePregnancy": "Cycle & Pregnancy",
@@ -192,7 +191,9 @@
       "goals": "Goals",
       "reports": "Reports",
       "heartRateZones": "Heart Rate Zones",
-      "heartRateZonesSubtitle": "Max and resting heart rate, zone method"
+      "heartRateZonesSubtitle": "Max and resting heart rate, zone method",
+      "appSubtitle": "Theme, language and sounds",
+      "notifications": "Notifications"
     },
     "theme": {
       "title": "Theme",
@@ -216,6 +217,14 @@
     "cameraShutter": {
       "title": "Camera shutter",
       "subtitle": "Play a sound when capturing photos."
+    },
+    "sections": {
+      "connection": "Connection",
+      "you": "You",
+      "tracking": "Tracking",
+      "layout": "Layout",
+      "appDevices": "App & devices",
+      "help": "Help"
     }
   },
   "languageSettings": {
@@ -223,7 +232,7 @@
   },
   "navigation": {
     "settings": "Settings",
-    "library": "Library",
+    "hub": "Hub",
     "presets": "Presets",
     "foods": "Foods",
     "meals": "Meals",
@@ -713,16 +722,9 @@
     "symptomDefinition": "Symptom Details",
     "library": {
       "loading": "Loading library...",
-      "title": "Library",
-      "create": "Create",
       "food": "Food",
-      "manualEntry": "Manual entry",
       "meal": "Meal",
-      "groupFoods": "Group foods",
       "exercise": "Exercise",
-      "workoutPreset": "Workout preset",
-      "exerciseRoutine": "Exercise routine",
-      "browse": "Browse",
       "foods": "Foods",
       "meals": "Meals",
       "mealPlans": "Meal plans",
@@ -755,7 +757,16 @@
       "labResults": "Lab results",
       "labResultsSubtitle": "Blood tests and other markers over time",
       "challenges": "Challenges",
-      "challengesSubtitle": "Group leaderboards with friends and family"
+      "challengesSubtitle": "Group leaderboards with friends and family",
+      "hubTitle": "Hub",
+      "createNew": "Create new",
+      "preset": "Preset",
+      "sections": {
+        "food": "Food & drink",
+        "training": "Training",
+        "health": "Health",
+        "progress": "Progress"
+      }
     },
     "sleep": "Sleep",
     "healthTrendsSettings": "Health Trends",

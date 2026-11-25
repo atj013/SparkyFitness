@@ -202,9 +202,9 @@ function LibraryStackScreen() {
           name="LibraryRoot"
           component={SafeLibrary as React.ComponentType}
           options={{
-            title: t('navigation.library', { defaultValue: 'Library' }),
-            headerBackTitle: t('navigation.library', {
-              defaultValue: 'Library',
+            title: t('navigation.hub', { defaultValue: 'Hub' }),
+            headerBackTitle: t('navigation.hub', {
+              defaultValue: 'Hub',
             }),
           }}
         />
@@ -284,7 +284,7 @@ export function NativeTabsLayout({
           name="Library"
           component={LibraryStackScreen}
           options={{
-            tabBarLabel: t('navigation.library', { defaultValue: 'Library' }),
+            tabBarLabel: t('navigation.hub', { defaultValue: 'Hub' }),
             tabBarIcon: () =>
               ({ sfSymbol: 'books.vertical.fill' }) as unknown as AppleIcon,
           }}
@@ -359,9 +359,9 @@ export function FallbackTabsLayout({
         name="Library"
         component={SafeLibrary}
         options={{
-          tabBarLabel: t('navigation.library', { defaultValue: 'Library' }),
-          tabBarAccessibilityLabel: t('navigation.library', {
-            defaultValue: 'Library',
+          tabBarLabel: t('navigation.hub', { defaultValue: 'Hub' }),
+          tabBarAccessibilityLabel: t('navigation.hub', {
+            defaultValue: 'Hub',
           }),
         }}
       />

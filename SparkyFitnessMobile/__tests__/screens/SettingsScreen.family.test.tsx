@@ -121,4 +121,53 @@ describe('SettingsScreen family diary entry', () => {
 
     expect(queryByText('Family Diaries')).toBeNull();
   });
+
+  test('groups the rows, opens Notifications and has no Dashboard row', () => {
+    const { getByText, queryByText } = render(
+      <SafeAreaProvider
+        initialMetrics={{
+          frame: { x: 0, y: 0, width: 390, height: 844 },
+          insets: { top: 0, bottom: 0, left: 0, right: 0 },
+        }}
+      >
+        <SettingsScreen navigation={navigation} route={route} />
+      </SafeAreaProvider>
+    );
+
+    for (const section of [
+      'settings.sections.connection',
+      'settings.sections.you',
+      'settings.sections.tracking',
+      'settings.sections.layout',
+      'settings.sections.appDevices',
+      'settings.sections.help',
+    ]) {
+      expect(getByText(section)).toBeTruthy();
+    }
+    // The Dashboard tab is hidden on this fork, so its settings are not offered.
+    expect(queryByText('settings.rows.dashboard')).toBeNull();
+
+    fireEvent.press(getByText('settings.rows.notifications'));
+    expect(navigation.navigate).toHaveBeenCalledWith('NotificationSettings');
+  });
+
+  test('leaves out the You section while disconnected', () => {
+    mockUseServerConnection.mockReturnValue({
+      isConnected: false,
+    } as ReturnType<typeof useServerConnection>);
+
+    const { getByText, queryByText } = render(
+      <SafeAreaProvider
+        initialMetrics={{
+          frame: { x: 0, y: 0, width: 390, height: 844 },
+          insets: { top: 0, bottom: 0, left: 0, right: 0 },
+        }}
+      >
+        <SettingsScreen navigation={navigation} route={route} />
+      </SafeAreaProvider>
+    );
+
+    expect(queryByText('settings.sections.you')).toBeNull();
+    expect(getByText('settings.rows.workout')).toBeTruthy();
+  });
 });
