@@ -4,33 +4,30 @@ import {
   addDays,
   compareDays,
   dayOfWeek,
+  isPassiveEntry,
   weekStartOf,
 } from '@workspace/shared';
 
 import { loadDailySummaryRawData } from '../services/dailySummaryService';
 import type { WorkoutPlanTemplate } from '../types/workoutPlans';
 import { getTodayDate } from '../utils/dateUtils';
-import {
-  getLoggedAssignmentIds,
-  isPlanLogged,
-} from '../utils/workoutPlanSchedule';
 import { dailySummaryQueryKey } from './queryKeys';
 
 export interface PlanWeekDay {
   day: string;
   /** 0 = Sunday ... 6 = Saturday. */
   weekday: number;
-  /** The plans with a session logged that day. */
-  donePlanIds: ReadonlySet<string>;
+  /** The diary holds a workout that day, from the plan or not. */
+  workedOut: boolean;
   isToday: boolean;
 }
 
 /**
- * The seven days of the week holding `date`, each with the `plans` its diary
- * holds a session from. Reads the same daily summaries the
- * Diary shows, so swiping between days of the week costs no extra requests
- * and anything that refreshes a day refreshes its bubble. `date`'s own entries
- * come from the caller, which has already merged workouts waiting offline.
+ * The seven days of the week holding `date`, each marked when its diary holds
+ * a workout. Reads the same daily summaries the Diary shows, so swiping
+ * between days of the week costs no extra requests and anything that
+ * refreshes a day refreshes its bubble. `date`'s own entries come from the
+ * caller, which has already merged workouts waiting offline.
  */
 export function usePlanWeekProgress(
   date: string,
@@ -56,21 +53,22 @@ export function usePlanWeekProgress(
       days.map((day, i) => ({
         day,
         weekday: dayOfWeek(day),
-        donePlanIds: plansLoggedIn(
-          plans,
-          day === date ? dateEntries : (results[i]?.data ?? [])
+        workedOut: (day === date ? dateEntries : (results[i]?.data ?? [])).some(
+          isWorkout
         ),
         isToday: day === today,
       })),
   });
 }
 
-function plansLoggedIn(
-  plans: readonly WorkoutPlanTemplate[],
-  entries: readonly ExerciseSessionResponse[]
-): Set<string> {
-  const logged = getLoggedAssignmentIds(entries);
-  return new Set(
-    plans.filter((plan) => isPlanLogged(plan, logged)).map((plan) => plan.id)
-  );
+/**
+ * A logged workout, not a synced daily rollup such as "Steps" or "Active
+ * calories". A single exercise with sets counts even without a duration, as
+ * a hand-logged strength exercise often has none.
+ */
+function isWorkout(session: ExerciseSessionResponse): boolean {
+  if (session.type === 'preset') return true;
+  if (session.sets.length > 0) return true;
+  const name = session.name ?? session.exercise_snapshot?.name ?? null;
+  return !isPassiveEntry({ name, durationMinutes: session.duration_minutes });
 }

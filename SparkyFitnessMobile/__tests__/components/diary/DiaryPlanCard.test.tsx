@@ -65,7 +65,18 @@ function plan(
 
 const session = (assignmentId: string) =>
   [
-    { id: 1, workout_plan_assignment_id: assignmentId },
+    { type: 'preset', id: 1, workout_plan_assignment_id: assignmentId },
+  ] as unknown as ExerciseSessionResponse[];
+
+const individual = (name: string, durationMinutes: number) =>
+  [
+    {
+      type: 'individual',
+      id: name,
+      name,
+      duration_minutes: durationMinutes,
+      sets: [],
+    },
   ] as unknown as ExerciseSessionResponse[];
 
 function renderCard(
@@ -186,6 +197,26 @@ describe('DiaryPlanCard', () => {
       ([day]) => day
     );
     expect(fetched.sort()).toEqual(['2026-11-15', '2026-11-16', '2026-11-17']);
+  });
+
+  it('fills a day with any workout, not only a plan session', async () => {
+    (loadDailySummaryRawData as jest.Mock).mockImplementation(
+      async (day: string) => ({
+        exerciseEntries:
+          day === '2026-11-16'
+            ? individual('Outdoor run', 32)
+            : day === '2026-11-17'
+              ? individual('Steps', 1440)
+              : [],
+      })
+    );
+    const screen = renderCard();
+
+    // Monday's run counts; Tuesday's synced step rollup does not.
+    await waitFor(() =>
+      expect(screen.getAllByTestId('diary-plan-day-done')).toHaveLength(1)
+    );
+    expect(screen.getByLabelText('1 workout day this week')).toBeTruthy();
   });
 
   it('says Rest day on a day the plan has nothing on', () => {

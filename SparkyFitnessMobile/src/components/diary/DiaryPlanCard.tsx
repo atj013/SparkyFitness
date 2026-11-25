@@ -40,7 +40,8 @@ interface DiaryPlanCardProps {
  * line per active plan with just the session's name ("Legs") and a round
  * Start button, a tick once it is logged (the line then opens that workout),
  * or "Rest day" when the plan has nothing on. Under it, the week's days as
- * small bubbles, filled on each day that plan's session was logged.
+ * small bubbles, filled on each day a workout was logged, from the plan or
+ * not (synced daily rollups such as steps do not count).
  */
 const DiaryPlanCard: React.FC<DiaryPlanCardProps> = ({
   date,
@@ -72,6 +73,7 @@ const DiaryPlanCard: React.FC<DiaryPlanCardProps> = ({
   );
 
   if (plans.length === 0) return null;
+  const daysDone = week.filter((d) => d.workedOut).length;
 
   return (
     // The tile is one big tap target for the calendar, but a screen reader
@@ -129,7 +131,6 @@ const DiaryPlanCard: React.FC<DiaryPlanCardProps> = ({
           done && onOpenWorkout
             ? findLoggedSessionForPlan(plan, exerciseEntries)
             : null;
-        const daysDone = week.filter((d) => d.donePlanIds.has(plan.id)).length;
         return (
           <View key={plan.id} className="gap-1.5">
             <Pressable
@@ -196,8 +197,7 @@ const DiaryPlanCard: React.FC<DiaryPlanCardProps> = ({
               })}
               testID="diary-plan-week"
             >
-              {week.map(({ day, weekday, donePlanIds, isToday }) => {
-                const dayDone = donePlanIds.has(plan.id);
+              {week.map(({ day, weekday, workedOut: dayDone, isToday }) => {
                 return (
                   <View
                     key={day}
